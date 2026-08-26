@@ -1,0 +1,1866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Experiment Lab Record Template</title>
+  
+  <!-- MathJax Configuration for LaTeX Rendering -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <!-- Load MathJax from highly-reliable Cloudflare CDN (SVG output for absolute alignment) -->
+  <script id="MathJax-script" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.min.js"></script>
+
+  <style>
+    /* Clean Design Tokens for the Browser Editor Shell */
+    :root {
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --accent: #a855f7;
+      --bg-dark: #0f172a;
+      --panel-bg: rgba(30, 41, 59, 0.7);
+      --panel-border: rgba(255, 255, 255, 0.1);
+      --text-light: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    /* Reset & Base Styles */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: #000;
+      font-family: system-ui, -apple-system, sans-serif;
+      overflow-y: scroll;
+    }
+
+    /* Interactive Control Panel at Top (Hidden on Print) */
+    .control-panel {
+      position: fixed;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 40px);
+      max-width: 950px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 1000;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 
+                  0 8px 10px -6px rgba(0, 0, 0, 0.3),
+                  0 0 20px rgba(99, 102, 241, 0.15);
+      color: var(--text-light);
+    }
+
+    .panel-left {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .panel-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      background: linear-gradient(to right, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+    }
+
+    .panel-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-badge {
+      font-weight: bold;
+      font-size: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #fb7185; /* Default salmon-red for checking */
+      transition: all 0.3s;
+    }
+
+    .panel-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Ruled Lines & Math Toggles Design */
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      cursor: pointer;
+      user-select: none;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: background 0.2s;
+    }
+
+    .toggle-container:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .toggle-container input {
+      cursor: pointer;
+    }
+
+    /* Premium Action Buttons */
+    .btn {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(99, 102, 241, 0.35);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.1);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.2);
+      transform: translateY(-1px);
+    }
+
+    /* Page Workspace Container */
+    .document-workspace {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 100px;
+      padding-bottom: 60px;
+      min-height: 100vh;
+      background-color: var(--bg-dark);
+      background-image: radial-gradient(rgba(99, 102, 241, 0.04) 1px, transparent 0),
+                        radial-gradient(rgba(168, 85, 247, 0.04) 1px, transparent 0);
+      background-size: 40px 40px;
+      background-position: 0 0, 20px 20px;
+    }
+
+    /* A4 Physical Paper Simulation on Screen - Continuous Flow */
+    .page {
+      background: #fff;
+      width: 210mm;
+      min-height: 297mm;
+      padding: 20mm 15mm 20mm 25mm; /* Wider left margin for spiral binding/filing */
+      margin: 25px auto;
+      box-sizing: border-box;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Prevent MathJax elements from inheriting parent pre-wrap breaks or line spacing */
+    mjx-container {
+      white-space: nowrap !important;
+      display: inline-block !important;
+      line-height: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    mjx-container[display="true"] {
+      display: block !important;
+      text-align: center;
+      margin: 1em auto !important;
+      white-space: nowrap !important;
+    }
+
+    /* Strict Typography for A4 VLSI Lab Report */
+    .page, .page td, .page th, .page input, .page textarea {
+      font-family: "Times New Roman", Times, Baskerville, Georgia, serif;
+      font-size: 12pt;
+      line-height: 1.5;
+      color: #000;
+    }
+
+    /* Header for Experiment page */
+    .experiment-header {
+      font-size: 14pt;
+      font-weight: bold;
+      margin-bottom: 25px;
+      text-align: left;
+      border-bottom: 1px solid #000;
+      padding-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Editable Experiment Number Span */
+    .editable-exp-num {
+      outline: none;
+      min-width: 80px;
+      display: inline-block;
+      border-bottom: 1px dashed #888;
+      padding: 0 4px;
+    }
+
+    .editable-exp-num:focus {
+      background-color: #f1f5f9;
+      border-bottom-color: var(--primary);
+    }
+
+    .editable-exp-num:empty::before {
+      content: "______";
+      color: #000;
+      font-style: normal;
+    }
+
+    /* Prevent Section Splitting Across Pages */
+    .report-section {
+      page-break-inside: avoid;
+      break-inside: avoid;
+      margin-bottom: 10px;
+    }
+
+    /* Dynamic Section Title Rows & Styling */
+    .section-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 25px;
+      margin-bottom: 10px;
+      border-bottom: 1.5px solid #000;
+      padding-bottom: 4px;
+      page-break-after: avoid;
+      break-after: avoid;
+    }
+
+    .section-title-container {
+      display: flex;
+      align-items: center;
+      font-size: 13pt;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .section-number {
+      margin-right: 4px;
+    }
+
+    .section-title-text {
+      outline: none;
+      padding: 0 4px;
+      border-bottom: 1px dashed transparent;
+    }
+
+    .section-title-text:focus {
+      background-color: #f1f5f9;
+      border-bottom-color: var(--primary);
+    }
+
+    /* Section Order & Editing controls */
+    .section-controls {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .section-control-btn {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      width: 24px;
+      height: 24px;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #475569;
+      transition: all 0.2s;
+    }
+
+    .section-control-btn:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+      border-color: #94a3b8;
+    }
+
+    .section-control-btn.delete {
+      color: #ef4444;
+      font-weight: bold;
+    }
+
+    .section-control-btn.delete:hover {
+      background: #fee2e2;
+      border-color: #fca5a5;
+      color: #b91c1c;
+    }
+
+    /* Writing spaces where users can type or write by hand */
+    .writing-space {
+      min-height: 60px;
+      border: 1px dashed #ccc;
+      padding: 10px;
+      margin-bottom: 20px;
+      outline: none;
+      white-space: pre-wrap;
+      position: relative;
+    }
+
+    /* Ruled Lines Background Pattern for Handwritten Submissions */
+    .writing-space.ruled {
+      background-image: linear-gradient(#e2e8f0 1px, transparent 1px);
+      background-size: 100% 24px;
+      line-height: 24px;
+      padding-top: 6px;
+    }
+
+    .writing-space.ruled::before {
+      line-height: 1.5 !important;
+    }
+
+    /* Compact default heights */
+    .aim-space { min-height: 60px; }
+    .tool-space { min-height: 60px; }
+    .theory-space { min-height: 180px; }
+    .calculation-space { min-height: 180px; }
+    .result-space { min-height: 100px; }
+
+    .images-space {
+      min-height: 200px;
+      border: 1px dashed #cbd5e1;
+      background-color: #fafbfc;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      padding: 15px;
+    }
+
+    .images-space:hover, .images-space:focus {
+      border-color: var(--primary);
+      background-color: rgba(99, 102, 241, 0.02);
+      outline: none;
+    }
+
+    /* Placeholders in editable divs */
+    [contenteditable="true"]:empty::before {
+      content: attr(placeholder);
+      color: #94a3b8;
+      font-style: italic;
+      font-size: 11pt;
+    }
+
+    /* Standard Table Styling */
+    .table-container {
+      margin-bottom: 25px;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      padding: 5px 0;
+    }
+
+    .table-caption {
+      font-size: 11pt;
+      font-weight: bold;
+      margin-bottom: 6px;
+      font-style: italic;
+      outline: none;
+      display: inline-block;
+    }
+
+    .table-caption:focus {
+      background-color: #f1f5f9;
+    }
+
+    .lab-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 15px;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .lab-table th, .lab-table td {
+      border: 1px solid #000;
+      padding: 6px 12px;
+      text-align: left;
+    }
+
+    .lab-table th {
+      font-weight: bold;
+      background-color: #f8fafc;
+    }
+
+    .lab-table td[contenteditable="true"] {
+      background-color: #fcfdfe;
+      outline: none;
+    }
+
+    .lab-table td[contenteditable="true"]:focus {
+      background-color: #f1f5f9;
+    }
+
+    /* Editable Table Headers */
+    .th-content-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .editable-th {
+      outline: none;
+      flex-grow: 1;
+    }
+
+    .editable-th:focus {
+      background-color: #f1f5f9;
+    }
+
+    /* Table Action Styling */
+    .table-actions-header {
+      border: none !important;
+      background: none !important;
+    }
+    
+    .row-actions-cell {
+      border: none !important;
+      text-align: center;
+      padding: 4px !important;
+    }
+
+    .delete-row-btn, .delete-col-btn {
+      background: none;
+      border: none;
+      color: #ef4444;
+      font-weight: bold;
+      cursor: pointer;
+      line-height: 1;
+      transition: all 0.2s;
+    }
+
+    .delete-row-btn {
+      font-size: 18px;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .delete-row-btn:hover {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .delete-col-btn {
+      font-size: 14px;
+      padding: 2px 5px;
+      border-radius: 3px;
+    }
+
+    .delete-col-btn:hover {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .table-actions-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 5px;
+      margin-bottom: 25px;
+    }
+
+    .btn-add-row, .btn-add-col {
+      background: rgba(99, 102, 241, 0.08);
+      color: var(--primary);
+      border: 1px dashed var(--primary);
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+
+    .btn-add-row:hover, .btn-add-col:hover {
+      background: rgba(99, 102, 241, 0.15);
+      transform: translateY(-1px);
+    }
+
+    /* Pasted/Dropped CAD Screenshots styling */
+    .image-gallery {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .image-container {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 90%;
+      max-width: 600px;
+      border: 1px solid #000;
+      padding: 8px;
+      background: #fff;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .pasted-image {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* Image Title/Caption Styling */
+    .image-title-wrapper {
+      width: 100%;
+      text-align: center;
+      margin-bottom: 8px;
+      font-family: "Times New Roman", Times, serif;
+      font-size: 11pt;
+    }
+
+    .img-number {
+      font-weight: bold;
+      margin-right: 4px;
+    }
+
+    .img-caption {
+      outline: none;
+      padding: 2px 4px;
+      border-bottom: 1px dashed #ccc;
+      min-width: 150px;
+      display: inline-block;
+    }
+
+    .img-caption:focus {
+      background-color: #f8fafc;
+      border-bottom-color: var(--primary);
+    }
+
+    .img-caption:empty::before {
+      content: attr(placeholder);
+      color: #94a3b8;
+      font-style: italic;
+    }
+
+    .delete-image-btn {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background: #ef4444;
+      color: white;
+      border: 1px solid #b91c1c;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      transition: background-color 0.2s;
+      z-index: 10;
+    }
+
+    .delete-image-btn:hover {
+      background-color: #dc2626;
+    }
+
+    /* Add Section Control Bar (Hidden on print) */
+    .add-section-bar {
+      width: 210mm;
+      margin: 15px auto 40px auto;
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 14px 24px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      color: var(--text-light);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-add-element {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: var(--text-light);
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-add-element:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    /* Print Specific Media Queries */
+    @media print {
+      @page {
+        size: A4;
+        margin: 20mm 15mm 20mm 25mm;
+      }
+
+      body {
+        background-color: #fff !important;
+        background-image: none !important;
+      }
+
+      .control-panel, .add-section-bar, .section-controls {
+        display: none !important;
+      }
+
+      .document-workspace {
+        padding: 0 !important;
+        background: none !important;
+        min-height: auto !important;
+      }
+
+      .page {
+        margin: 0 !important;
+        box-shadow: none !important;
+        width: 100% !important;
+        min-height: 0 !important;
+        height: auto !important;
+        padding: 0 !important;
+        page-break-after: avoid;
+        background: #fff !important;
+      }
+
+      .report-section {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+
+      .section-header-row {
+        border-bottom: 1px solid #000 !important;
+      }
+
+      .editable-exp-num {
+        border-bottom: none !important;
+      }
+
+      .editable-exp-num:empty::before {
+        content: "______" !important;
+      }
+
+      .writing-space {
+        border: none !important;
+        padding: 0 !important;
+        margin-bottom: 20px !important;
+      }
+
+      .writing-space.ruled {
+        background-image: linear-gradient(#cbd5e1 1px, transparent 1px) !important;
+        background-size: 100% 24px !important;
+      }
+
+      .lab-table th {
+        background-color: #fff !important;
+      }
+
+      .lab-table td[contenteditable="true"] {
+        background-color: #fff !important;
+      }
+
+      .img-caption {
+        border-bottom: none !important;
+      }
+
+      .img-caption:empty::before {
+        content: "" !important;
+      }
+
+      .row-actions-cell, .table-actions-header, .table-actions-row, .delete-col-btn, .delete-image-btn {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Workspace Header & Control Panel -->
+  <div class="control-panel">
+    <div class="panel-left">
+      <div class="panel-title">VLSI Lab Record Workspace</div>
+      <div class="panel-subtitle">
+        Interactive CMOS Inverter Layout Template 
+        <span id="math-status-badge" class="status-badge">● Checking LaTeX...</span>
+      </div>
+    </div>
+    <div class="panel-actions">
+      <label class="toggle-container" id="math-toggle-label">
+        <input type="checkbox" id="math-toggle">
+        <span>Preview Math (LaTeX)</span>
+      </label>
+      <label class="toggle-container" id="ruled-toggle-label">
+        <input type="checkbox" id="ruled-toggle">
+        <span>Ruled lines for hand-writing</span>
+      </label>
+      <button class="btn" style="background: rgba(255,255,255,0.08); color: var(--text-light);" id="save-file-btn" title="Export Backup JSON">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        Save File
+      </button>
+      <button class="btn" style="background: rgba(255,255,255,0.08); color: var(--text-light);" id="load-file-btn" title="Import Backup JSON">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        Load File
+      </button>
+      <input type="file" id="file-input-hidden" accept=".json" style="display: none;">
+      <button class="btn btn-danger" id="clear-btn">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        Clear All
+      </button>
+      <button class="btn btn-primary" onclick="printDocument()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+        Print Record
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Continuous Flow Workspace -->
+  <div class="document-workspace">
+
+    <!-- Single Continuous Sheet -->
+    <div class="page" id="main-lab-sheet">
+      
+      <div class="experiment-header">
+        EXPERIMENT NO. <span contenteditable="true" class="editable-exp-num" id="exp-num-field" placeholder="______"></span>
+      </div>
+
+      <!-- Content Area containing modular sections -->
+      <div id="sections-container">
+        
+        <!-- 1. AIM Section -->
+        <div class="report-section" data-type="text">
+          <div class="section-header-row">
+            <div class="section-title-container">
+              <span class="section-number">1. </span>
+              <span class="section-title-text" contenteditable="true">AIM</span>
+            </div>
+            <div class="section-controls">
+              <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
+              <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
+              <button class="section-control-btn delete" title="Delete Section">&times;</button>
+            </div>
+          </div>
+          <div class="writing-space aim-space" contenteditable="true" placeholder="[Leave blank space for the student to write the aim. Click here to type.]"></div>
+        </div>
+
+        <!-- 2. TOOL Section -->
+        <div class="report-section" data-type="text">
+          <div class="section-header-row">
+            <div class="section-title-container">
+              <span class="section-number">2. </span>
+              <span class="section-title-text" contenteditable="true">TOOL</span>
+            </div>
+            <div class="section-controls">
+              <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
+              <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
+              <button class="section-control-btn delete" title="Delete Section">&times;</button>
+            </div>
+          </div>
+          <div class="writing-space tool-space" contenteditable="true" placeholder="[Leave blank space for the student to write the tools/software. Click here to type.]"></div>
+        </div>
+
+        <!-- 3. THEORY Section -->
+        <div class="report-section" data-type="text">
+          <div class="section-header-row">
+            <div class="section-title-container">
+              <span class="section-number">3. </span>
+              <span class="section-title-text" contenteditable="true">THEORY</span>
+            </div>
+            <div class="section-controls">
+              <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
+              <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
+              <button class="section-control-btn delete" title="Delete Section">&times;</button>
+            </div>
+          </div>
+          <div class="writing-space theory-space" contenteditable="true" placeholder="[Leave a sufficiently large blank section. The student will write the theory and formulas here. You can write LaTeX equations using $...$ for inline and $$...$$ for block math. Click here to type.]">
+Here is your formula wrapped in LaTeX delimiters:
+$$\%\text{ Difference} = \frac{\left|X_{\text{with RC}}-X_{\text{without RC}}\right|}{\left|X_{\text{without RC}}\right|} \times 100$$
+
+Here is an inline formula:
+The threshold voltage is given by $V_{TH} = V_{T0} + \gamma(\sqrt{2\phi_f + V_{SB}} - \sqrt{2\phi_f})$.
+          </div>
+        </div>
+
+        <!-- 4. TABLE Section -->
+        <div class="report-section" data-type="table">
+          <div class="section-header-row">
+            <div class="section-title-container">
+              <span class="section-number">4. </span>
+              <span class="section-title-text" contenteditable="true">TABLE</span>
+            </div>
+            <div class="section-controls">
+              <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
+              <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
+              <button class="section-control-btn delete" title="Delete Section">&times;</button>
+            </div>
+          </div>
+          
+          <!-- Table 4.1 -->
+          <div class="table-container">
+            <div class="table-caption" contenteditable="true">Table 4.1: CMOS Inverter Design Parameters</div>
+            <table class="lab-table" id="params-table">
+              <thead>
+                <tr>
+                  <th style="width: 45%;">
+                    <div class="th-content-wrapper">
+                      <span contenteditable="true" class="editable-th">Parameter</span>
+                    </div>
+                  </th>
+                  <th style="width: 25%;">
+                    <div class="th-content-wrapper">
+                      <span contenteditable="true" class="editable-th">Value</span>
+                      <button class="delete-col-btn" title="Delete Column">&times;</button>
+                    </div>
+                  </th>
+                  <th style="width: 20%;">
+                    <div class="th-content-wrapper">
+                      <span contenteditable="true" class="editable-th">Unit</span>
+                      <button class="delete-col-btn" title="Delete Column">&times;</button>
+                    </div>
+                  </th>
+                  <th style="width: 10%;" class="table-actions-header"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td contenteditable="true">Technology</td>
+                  <td contenteditable="true">180</td>
+                  <td contenteditable="true">nm</td>
+                  <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                </tr>
+                <tr>
+                  <td contenteditable="true">$V_{DD}$</td>
+                  <td contenteditable="true"></td>
+                  <td contenteditable="true">V</td>
+                  <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                </tr>
+                <tr>
+                  <td contenteditable="true">PMOS Width ($W_p$)</td>
+                  <td contenteditable="true"></td>
+                  <td contenteditable="true">µm</td>
+                  <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                </tr>
+                <tr>
+                  <td contenteditable="true">NMOS Width ($W_n$)</td>
+                  <td contenteditable="true"></td>
+                  <td contenteditable="true">µm</td>
+                  <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                </tr>
+                <tr>
+                  <td contenteditable="true">Input Rise Time ($t_r$)</td>
+                  <td contenteditable="true"></td>
+                  <td contenteditable="true">ns</td>
+                  <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                </tr>
+                <tr>
+                  <td contenteditable="true">Input Fall Time ($t_f$)</td>
+                  <td contenteditable="true"></td>
+                  <td contenteditable="true">ns</td>
+                  <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                </tr>
+              </tbody>
+            </table>
+            
+            <div class="table-actions-row">
+              <button class="btn-add-row" data-action="add-row" data-table="params-table">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Add Row
+              </button>
+              <button class="btn-add-col" data-action="add-col" data-table="params-table">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Add Column
+              </button>
+            </div>
+          </div>
+
+          <!-- Table 4.2 -->
+          <div class="table-container" style="margin-top: 10px;">
+            <div class="table-caption" contenteditable="true">Table 4.2: Simulation Results Comparison (With vs. Without RC Extraction)</div>
+            <table class="lab-table" id="comparison-table">
+              <thead>
+                <tr>
+                  <th style="width: 40%;">
+                    <div class="th-content-wrapper">
+                      <span contenteditable="true" class="editable-th">Parameter</span>
+                    </div>
+                  </th>
+                  <th style="width: 25%;">
+                    <div class="th-content-wrapper">
+                      <span contenteditable="true" class="editable-th">Without RC</span>
+                      <button class="delete-col-btn" title="Delete Column">&times;</button>
+                    </div>
+                  </th>
+                  <th style="width: 25%;">
+                    <div class="th-content-wrapper">
+                      <span contenteditable="true" class="editable-th">With RC</span>
+                      <button class="delete-col-btn" title="Delete Column">&times;</button>
+                    </div>
+                  </th>
+                  <th style="width: 10%;" class="table-actions-header"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td contenteditable="true">$V_{TH}$</td>
+                  <td contenteditable="true"></td>
+                  <td contenteditable="true"></td>
+                  <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                </tr>
+                <tr>
+                  <td contenteditable="true">$V_{OH}$</td>
+                  <td contenteditable="true"></td>
+                  <td contenteditable="true"></td>
+                  <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                </tr>
+                <tr>
+                  <td contenteditable="true">$V_{OL}$</td>
+                  <td contenteditable="true"></td>
+                  <td contenteditable="true"></td>
+                  <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                </tr>
+                <tr>
+                  <td contenteditable="true">$V_{IH}$</td>
+                  <td contenteditable="true"></td>
+                  <td contenteditable="true"></td>
+                  <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                </tr>
+                <tr>
+                  <td contenteditable="true">$V_{IL}$</td>
+                  <td contenteditable="true"></td>
+                  <td contenteditable="true"></td>
+                  <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                </tr>
+                <tr>
+                  <td contenteditable="true">$NM_H$</td>
+                  <td contenteditable="true"></td>
+                  <td contenteditable="true"></td>
+                  <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                </tr>
+                <tr>
+                  <td contenteditable="true">$NM_L$</td>
+                  <td contenteditable="true"></td>
+                  <td contenteditable="true"></td>
+                  <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                </tr>
+                <tr>
+                  <td contenteditable="true">$t_{pHL}$</td>
+                  <td contenteditable="true"></td>
+                  <td contenteditable="true"></td>
+                  <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                </tr>
+                <tr>
+                  <td contenteditable="true">$t_{pLH}$</td>
+                  <td contenteditable="true"></td>
+                  <td contenteditable="true"></td>
+                  <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                </tr>
+                <tr>
+                  <td contenteditable="true">$t_p$</td>
+                  <td contenteditable="true"></td>
+                  <td contenteditable="true"></td>
+                  <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                </tr>
+                <tr>
+                  <td contenteditable="true">$t_r$</td>
+                  <td contenteditable="true"></td>
+                  <td contenteditable="true"></td>
+                  <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                </tr>
+                <tr>
+                  <td contenteditable="true">$t_f$</td>
+                  <td contenteditable="true"></td>
+                  <td contenteditable="true"></td>
+                  <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                </tr>
+              </tbody>
+            </table>
+            
+            <div class="table-actions-row">
+              <button class="btn-add-row" data-action="add-row" data-table="comparison-table">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Add Row
+              </button>
+              <button class="btn-add-col" data-action="add-col" data-table="comparison-table">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Add Column
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. CALCULATION Section -->
+        <div class="report-section" data-type="text">
+          <div class="section-header-row">
+            <div class="section-title-container">
+              <span class="section-number">5. </span>
+              <span class="section-title-text" contenteditable="true">CALCULATION</span>
+            </div>
+            <div class="section-controls">
+              <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
+              <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
+              <button class="section-control-btn delete" title="Delete Section">&times;</button>
+            </div>
+          </div>
+          <div class="writing-space calculation-space" contenteditable="true" placeholder="[Leave a large blank section. Do not specify what each calculation is for. The student will decide what to calculate. You can write LaTeX equations here (e.g. $\tau = R \times C$). Click here to type.]"></div>
+        </div>
+
+        <!-- 6. IMAGES Section -->
+        <div class="report-section" data-type="images">
+          <div class="section-header-row">
+            <div class="section-title-container">
+              <span class="section-number">6. </span>
+              <span class="section-title-text" contenteditable="true">IMAGES</span>
+            </div>
+            <div class="section-controls">
+              <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
+              <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
+              <button class="section-control-btn delete" title="Delete Section">&times;</button>
+            </div>
+          </div>
+          <div class="writing-space images-space" id="images-dropzone" tabindex="0" placeholder="[Leave a large blank section for pasting experiment screenshots/images. Paste image (Ctrl+V) or Drag & Drop screenshot file directly here.]">
+            <div class="image-gallery" id="gallery-container"></div>
+          </div>
+        </div>
+
+        <!-- 7. RESULT Section -->
+        <div class="report-section" data-type="text">
+          <div class="section-header-row">
+            <div class="section-title-container">
+              <span class="section-number">7. </span>
+              <span class="section-title-text" contenteditable="true">RESULT</span>
+            </div>
+            <div class="section-controls">
+              <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
+              <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
+              <button class="section-control-btn delete" title="Delete Section">&times;</button>
+            </div>
+          </div>
+          <div class="writing-space result-space" contenteditable="true" placeholder="[Leave a blank section for the result. Click here to type.]"></div>
+        </div>
+
+      </div> <!-- End sections-container -->
+      
+    </div> <!-- End page -->
+
+  </div>
+
+  <!-- Add Section Control Bar (Hidden on print) -->
+  <div class="add-section-bar">
+    <span style="font-weight: 600; font-size: 13px;">Add New Element to Report:</span>
+    <button class="btn-add-element" id="btn-new-text-sec">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+      Text Block
+    </button>
+    <button class="btn-add-element" id="btn-new-table-sec">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line></svg>
+      Table Grid
+    </button>
+    <button class="btn-add-element" id="btn-new-images-sec">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+      Image Space
+    </button>
+  </div>
+
+  <script>
+    // Elements Selection
+    const ruledToggle = document.getElementById('ruled-toggle');
+    const mathToggle = document.getElementById('math-toggle');
+    const clearBtn = document.getElementById('clear-btn');
+    const sectionsContainer = document.getElementById('sections-container');
+
+    // Local Storage Keys prefix
+    const STORAGE_PREFIX = 'vlsi_lab_record_';
+
+    let isMathRendered = false;
+
+    // Dynamically inject MathJax layout protection styles to bypass HTML caches
+    function injectMathStyles() {
+      const styleId = 'mathjax-dynamic-resets';
+      if (document.getElementById(styleId)) return;
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.innerHTML = `
+        mjx-container {
+          white-space: nowrap !important;
+          display: inline-block !important;
+          line-height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        mjx-container[display="true"] {
+          display: block !important;
+          text-align: center;
+          margin: 1em auto !important;
+          white-space: nowrap !important;
+        }
+        mjx-container svg {
+          display: inline-block !important;
+          vertical-align: middle !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    injectMathStyles();
+    document.addEventListener('DOMContentLoaded', injectMathStyles);
+
+    // Save Data Function (Serializes the entire sections container HTML)
+    function saveAllData() {
+      if (isMathRendered) return;
+
+      localStorage.setItem(STORAGE_PREFIX + 'exp_num', document.getElementById('exp-num-field').innerHTML);
+      localStorage.setItem(STORAGE_PREFIX + 'sections_markup', sectionsContainer.innerHTML);
+      localStorage.setItem(STORAGE_PREFIX + 'ruled_state', ruledToggle.checked);
+    }
+
+    // Load Data Function (Restores full serialized markup)
+    function loadAllData() {
+      const expNum = localStorage.getItem(STORAGE_PREFIX + 'exp_num');
+      if (expNum !== null) document.getElementById('exp-num-field').innerHTML = expNum;
+
+      const savedSections = localStorage.getItem(STORAGE_PREFIX + 'sections_markup');
+      if (savedSections !== null) {
+        sectionsContainer.innerHTML = savedSections;
+      }
+
+      const savedRuledState = localStorage.getItem(STORAGE_PREFIX + 'ruled_state') === 'true';
+      ruledToggle.checked = savedRuledState;
+      toggleRuledClass(savedRuledState);
+
+      // Refresh numbering of sections and figures
+      updateSectionNumbers();
+      updateImageNumbers();
+
+      // Bind all interactive events to DOM
+      bindAllEvents();
+    }
+
+    // Update Section numbers sequentially (e.g. 1. AIM, 2. TOOL, etc.)
+    function updateSectionNumbers() {
+      const titles = sectionsContainer.querySelectorAll('.report-section');
+      titles.forEach((sec, idx) => {
+        const numSpan = sec.querySelector('.section-number');
+        if (numSpan) {
+          numSpan.textContent = `${idx + 1}. `;
+        }
+      });
+    }
+
+    // Update Figure numbers dynamically across the entire document
+    function updateImageNumbers() {
+      const containers = sectionsContainer.querySelectorAll('.image-container');
+      containers.forEach((container, index) => {
+        const numSpan = container.querySelector('.img-number');
+        if (numSpan) {
+          numSpan.textContent = `Figure ${index + 1}: `;
+        }
+      });
+    }
+
+    // Move Section Up DOM handler
+    function moveSectionUp(btn) {
+      if (isMathRendered) return;
+      const section = btn.closest('.report-section');
+      const previous = section.previousElementSibling;
+      if (previous && previous.classList.contains('report-section')) {
+        sectionsContainer.insertBefore(section, previous);
+        updateSectionNumbers();
+        saveAllData();
+      }
+    }
+
+    // Move Section Down DOM handler
+    function moveSectionDown(btn) {
+      if (isMathRendered) return;
+      const section = btn.closest('.report-section');
+      const next = section.nextElementSibling;
+      if (next && next.classList.contains('report-section')) {
+        // insertBefore(node, next.nextSibling) acts as insertAfter
+        sectionsContainer.insertBefore(section, next.nextElementSibling);
+        updateSectionNumbers();
+        saveAllData();
+      }
+    }
+
+    // Delete Section DOM handler
+    function deleteSection(btn) {
+      if (isMathRendered) return;
+      if (confirm('Are you sure you want to delete this entire section and all its contents?')) {
+        const section = btn.closest('.report-section');
+        section.remove();
+        updateSectionNumbers();
+        updateImageNumbers(); // refresh image index in case image dropzone was removed
+        saveAllData();
+      }
+    }
+
+    // Add a new row to a table
+    function addRow(tableId) {
+      if (isMathRendered) return;
+      const table = document.getElementById(tableId);
+      if (!table) return;
+      const theadRow = table.querySelector('thead tr');
+      const tbody = table.querySelector('tbody');
+      const colsCount = theadRow.children.length;
+      
+      const tr = document.createElement('tr');
+      
+      // Add data cells
+      for (let i = 0; i < colsCount - 1; i++) {
+        const td = document.createElement('td');
+        td.contentEditable = 'true';
+        if (i === 0) {
+          td.textContent = 'New Parameter';
+        }
+        tr.appendChild(td);
+      }
+      
+      // Add actions cell
+      const actionTd = document.createElement('td');
+      actionTd.className = 'row-actions-cell';
+      actionTd.innerHTML = '<button class="delete-row-btn">&times;</button>';
+      tr.appendChild(actionTd);
+      
+      tbody.appendChild(tr);
+      
+      // Bind event listeners to new row
+      actionTd.querySelector('.delete-row-btn').onclick = function() {
+        tr.remove();
+        saveAllData();
+      };
+      
+      tr.querySelectorAll('[contenteditable="true"]').forEach(cell => {
+        cell.oninput = saveAllData;
+      });
+      
+      saveAllData();
+    }
+
+    // Add a new column to a table
+    function addColumn(tableId) {
+      if (isMathRendered) return;
+      const table = document.getElementById(tableId);
+      if (!table) return;
+      const theadRow = table.querySelector('thead tr');
+      const tbodyRows = table.querySelectorAll('tbody tr');
+      const colsCount = theadRow.children.length;
+
+      const th = document.createElement('th');
+      th.innerHTML = `
+        <div class="th-content-wrapper">
+          <span contenteditable="true" class="editable-th">New Column</span>
+          <button class="delete-col-btn" title="Delete Column">&times;</button>
+        </div>
+      `;
+
+      theadRow.insertBefore(th, theadRow.children[colsCount - 1]);
+
+      th.querySelector('.delete-col-btn').onclick = function() {
+        deleteColumn(th);
+      };
+
+      tbodyRows.forEach(row => {
+        const td = document.createElement('td');
+        td.contentEditable = 'true';
+        row.insertBefore(td, row.children[row.children.length - 1]);
+        td.oninput = saveAllData;
+      });
+
+      th.querySelector('.editable-th').oninput = saveAllData;
+      saveAllData();
+    }
+
+    // Delete a column from a table
+    function deleteColumn(thElement) {
+      if (isMathRendered) return;
+      const table = thElement.closest('table');
+      const theadRow = table.querySelector('thead tr');
+      const index = Array.from(theadRow.children).indexOf(thElement);
+
+      if (index === -1) return;
+
+      thElement.remove();
+
+      const tbodyRows = table.querySelectorAll('tbody tr');
+      tbodyRows.forEach(row => {
+        if (row.children[index]) {
+          row.children[index].remove();
+        }
+      });
+
+      saveAllData();
+    }
+
+    // Helper to process and append base64 images into a target gallery
+    function addImageToGallery(galleryElement, base64Data) {
+      const imgContainer = document.createElement('div');
+      imgContainer.className = 'image-container';
+
+      const titleWrapper = document.createElement('div');
+      titleWrapper.className = 'image-title-wrapper';
+
+      const numSpan = document.createElement('span');
+      numSpan.className = 'img-number';
+      
+      const captionSpan = document.createElement('span');
+      captionSpan.className = 'img-caption';
+      captionSpan.contentEditable = 'true';
+      captionSpan.setAttribute('placeholder', '[Type image title here...]');
+      captionSpan.oninput = saveAllData;
+
+      titleWrapper.appendChild(numSpan);
+      titleWrapper.appendChild(captionSpan);
+
+      const img = document.createElement('img');
+      img.src = base64Data;
+      img.className = 'pasted-image';
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.innerHTML = '&times;';
+      deleteBtn.className = 'delete-image-btn';
+      deleteBtn.title = 'Delete Image';
+      deleteBtn.onclick = function() {
+        imgContainer.remove();
+        updateImageNumbers();
+        saveAllData();
+      };
+
+      imgContainer.appendChild(titleWrapper);
+      imgContainer.appendChild(img);
+      imgContainer.appendChild(deleteBtn);
+      galleryElement.appendChild(imgContainer);
+
+      updateImageNumbers();
+      saveAllData();
+    }
+
+    // Bind all interactive and save event listeners across the document
+    function bindAllEvents() {
+      // 1. Re-bind section controls
+      document.querySelectorAll('.move-up-btn').forEach(btn => {
+        btn.onclick = () => moveSectionUp(btn);
+      });
+      document.querySelectorAll('.move-down-btn').forEach(btn => {
+        btn.onclick = () => moveSectionDown(btn);
+      });
+      document.querySelectorAll('.section-control-btn.delete').forEach(btn => {
+        btn.onclick = () => deleteSection(btn);
+      });
+
+      // 2. Re-bind table cell row additions and actions
+      document.querySelectorAll('.btn-add-row').forEach(btn => {
+        btn.onclick = function() {
+          const tableId = btn.getAttribute('data-table');
+          addRow(tableId);
+        };
+      });
+      document.querySelectorAll('.btn-add-col').forEach(btn => {
+        btn.onclick = function() {
+          const tableId = btn.getAttribute('data-table');
+          addColumn(tableId);
+        };
+      });
+      document.querySelectorAll('.delete-row-btn').forEach(btn => {
+        btn.onclick = function() {
+          if (isMathRendered) return;
+          btn.closest('tr').remove();
+          saveAllData();
+        };
+      });
+      document.querySelectorAll('.delete-col-btn').forEach(btn => {
+        btn.onclick = function() {
+          deleteColumn(btn.closest('th'));
+        };
+      });
+
+      // 3. Re-bind drag & drop interfaces
+      document.querySelectorAll('.images-space').forEach(dropzone => {
+        const gallery = dropzone.querySelector('.image-gallery');
+        
+        dropzone.ondragover = function(e) {
+          e.preventDefault();
+          dropzone.style.borderColor = 'var(--primary)';
+          dropzone.style.backgroundColor = 'rgba(99, 102, 241, 0.05)';
+        };
+        
+        dropzone.ondragleave = function(e) {
+          e.preventDefault();
+          dropzone.style.borderColor = '#cbd5e1';
+          dropzone.style.backgroundColor = '#fafbfc';
+        };
+        
+        dropzone.ondrop = function(e) {
+          e.preventDefault();
+          dropzone.style.borderColor = '#cbd5e1';
+          dropzone.style.backgroundColor = '#fafbfc';
+
+          const files = e.dataTransfer.files;
+          for (const file of files) {
+            if (file.type.indexOf('image') === 0) {
+              const reader = new FileReader();
+              reader.onload = function(event) {
+                addImageToGallery(gallery, event.target.result);
+              };
+              reader.readAsDataURL(file);
+            }
+          }
+        };
+      });
+
+      // Re-bind image deletion overlays
+      document.querySelectorAll('.delete-image-btn').forEach(btn => {
+        btn.onclick = function() {
+          btn.parentElement.remove();
+          updateImageNumbers();
+          saveAllData();
+        };
+      });
+
+      // 4. Contenteditable auto-saves
+      document.querySelectorAll('[contenteditable="true"]').forEach(el => {
+        el.oninput = saveAllData;
+      });
+    }
+
+    // LaTeX Status Diagnostic Badge Handler
+    function updateMathJaxStatus() {
+      const badge = document.getElementById('math-status-badge');
+      if (!badge) return;
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        badge.textContent = '● LaTeX Ready';
+        badge.style.color = '#4ade80';
+        badge.style.backgroundColor = 'rgba(74, 222, 128, 0.1)';
+      } else {
+        badge.textContent = '● LaTeX Offline';
+        badge.style.color = '#f87171';
+        badge.style.backgroundColor = 'rgba(248, 113, 113, 0.1)';
+      }
+    }
+
+    // Check loader status
+    window.addEventListener('load', function() {
+      setTimeout(updateMathJaxStatus, 500);
+      setTimeout(updateMathJaxStatus, 1500);
+      setTimeout(updateMathJaxStatus, 3000);
+    });
+
+    // Render LaTeX Math on page
+    function renderMathOnPage() {
+      if (isMathRendered) return Promise.resolve();
+      
+      if (!window.MathJax || !window.MathJax.typesetPromise) {
+        console.warn("MathJax not loaded yet. Check your internet connection.");
+        alert("MathJax LaTeX renderer is not loaded. Please connect to the internet to preview formatted equations.");
+        mathToggle.checked = false;
+        return Promise.resolve();
+      }
+
+      // Save current input state
+      saveAllData();
+      
+      // Lock editing and store raw html in a data attribute
+      const elementsToRender = document.querySelectorAll(
+        '.writing-space:not(.images-space), #exp-num-field, .editable-th, .lab-table td[contenteditable="true"]'
+      );
+      
+      elementsToRender.forEach(el => {
+        el.setAttribute('data-raw-content', el.innerHTML);
+        
+        // Convert HTML to clean plain text
+        const plainText = el.innerText;
+        el.textContent = plainText;
+        
+        el.contentEditable = "false";
+      });
+      
+      isMathRendered = true;
+      
+      // Trigger MathJax to typeset the modified elements
+      MathJax.typesetClear(elementsToRender);
+      return MathJax.typesetPromise(elementsToRender);
+    }
+
+    // Restore raw LaTeX text for editing
+    function restoreRawText() {
+      if (!isMathRendered) return;
+      
+      const elementsToRestore = document.querySelectorAll('[data-raw-content]');
+      elementsToRestore.forEach(el => {
+        const raw = el.getAttribute('data-raw-content');
+        if (raw !== null) {
+          el.innerHTML = raw;
+          el.removeAttribute('data-raw-content');
+        }
+        el.contentEditable = "true";
+      });
+      
+      isMathRendered = false;
+      bindAllEvents();
+    }
+
+    // Toggle Math Preview Listener
+    mathToggle.addEventListener('change', function(e) {
+      if (e.target.checked) {
+        renderMathOnPage();
+      } else {
+        restoreRawText();
+      }
+    });
+
+    // Custom Document Printing workflow (Typesets math, prints, and restores editing state)
+    function printDocument() {
+      renderMathOnPage().then(() => {
+        setTimeout(() => {
+          window.print();
+          if (!mathToggle.checked) {
+            restoreRawText();
+          }
+        }, 300);
+      });
+    }
+
+    // Toggle Ruled CSS Class helper
+    function toggleRuledClass(isRuled) {
+      const spaces = document.querySelectorAll('.writing-space:not(.images-space)');
+      spaces.forEach(space => {
+        if (isRuled) {
+          space.classList.add('ruled');
+        } else {
+          space.classList.remove('ruled');
+        }
+      });
+    }
+
+    // Handle Ruled Lines Toggle
+    ruledToggle.addEventListener('change', function(e) {
+      toggleRuledClass(e.target.checked);
+      saveAllData();
+    });
+
+    // Global Paste Image Router
+    window.addEventListener('paste', function(e) {
+      const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+      for (const item of items) {
+        if (item.type.indexOf('image') === 0) {
+          const blob = item.getAsFile();
+          const reader = new FileReader();
+          reader.onload = function(event) {
+            // Find appropriate gallery
+            let targetGallery = null;
+            const activeEl = document.activeElement;
+            if (activeEl && activeEl.classList.contains('images-space')) {
+              targetGallery = activeEl.querySelector('.image-gallery');
+            }
+            if (!targetGallery) {
+              targetGallery = sectionsContainer.querySelector('.image-gallery');
+            }
+            
+            if (targetGallery) {
+              addImageToGallery(targetGallery, event.target.result);
+            } else {
+              alert("Please insert an Image Space section first using the control bar below!");
+            }
+          };
+          reader.readAsDataURL(blob);
+          e.preventDefault();
+        }
+      }
+    });
+
+    // --- Dynamic Section Adding ---
+    
+    // 1. Text Section Creator
+    document.getElementById('btn-new-text-sec').onclick = function() {
+      if (isMathRendered) return;
+      const section = document.createElement('div');
+      section.className = 'report-section';
+      section.setAttribute('data-type', 'text');
+      section.innerHTML = `
+        <div class="section-header-row">
+          <div class="section-title-container">
+            <span class="section-number"></span>
+            <span class="section-title-text" contenteditable="true">NEW SECTION</span>
+          </div>
+          <div class="section-controls">
+            <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
+            <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
+            <button class="section-control-btn delete" title="Delete Section">&times;</button>
+          </div>
+        </div>
+        <div class="writing-space" contenteditable="true" placeholder="[Type content here. Supports LaTeX equations.]"></div>
+      `;
+      sectionsContainer.appendChild(section);
+      
+      // Update numbering, rebind event listeners, save data
+      updateSectionNumbers();
+      bindAllEvents();
+      saveAllData();
+      
+      // Focus on the new title immediately
+      section.querySelector('.section-title-text').focus();
+    };
+
+    // 2. Table Section Creator
+    document.getElementById('btn-new-table-sec').onclick = function() {
+      if (isMathRendered) return;
+      const tableId = `table-${Date.now()}`;
+      const section = document.createElement('div');
+      section.className = 'report-section';
+      section.setAttribute('data-type', 'table');
+      section.innerHTML = `
+        <div class="section-header-row">
+          <div class="section-title-container">
+            <span class="section-number"></span>
+            <span class="section-title-text" contenteditable="true">NEW TABLE SECTION</span>
+          </div>
+          <div class="section-controls">
+            <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
+            <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
+            <button class="section-control-btn delete" title="Delete Section">&times;</button>
+          </div>
+        </div>
+        <div class="table-container">
+          <div class="table-caption" contenteditable="true">Table Caption</div>
+          <table class="lab-table" id="${tableId}">
+            <thead>
+              <tr>
+                <th style="width: 50%;">
+                  <div class="th-content-wrapper">
+                    <span contenteditable="true" class="editable-th">Parameter</span>
+                  </div>
+                </th>
+                <th style="width: 40%;">
+                  <div class="th-content-wrapper">
+                    <span contenteditable="true" class="editable-th">Value</span>
+                    <button class="delete-col-btn" title="Delete Column">&times;</button>
+                  </div>
+                </th>
+                <th style="width: 10%;" class="table-actions-header"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td contenteditable="true">Parameter Name</td>
+                <td contenteditable="true"></td>
+                <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="table-actions-row">
+            <button class="btn-add-row" data-action="add-row" data-table="${tableId}">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              Add Row
+            </button>
+            <button class="btn-add-col" data-action="add-col" data-table="${tableId}">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              Add Column
+            </button>
+          </div>
+        </div>
+      `;
+      sectionsContainer.appendChild(section);
+      
+      updateSectionNumbers();
+      bindAllEvents();
+      saveAllData();
+      
+      section.querySelector('.section-title-text').focus();
+    };
+
+    // 3. Images Section Creator
+    document.getElementById('btn-new-images-sec').onclick = function() {
+      if (isMathRendered) return;
+      const dropzoneId = `dropzone-${Date.now()}`;
+      const galleryId = `gallery-${Date.now()}`;
+      
+      const section = document.createElement('div');
+      section.className = 'report-section';
+      section.setAttribute('data-type', 'images');
+      section.innerHTML = `
+        <div class="section-header-row">
+          <div class="section-title-container">
+            <span class="section-number"></span>
+            <span class="section-title-text" contenteditable="true">NEW IMAGES SECTION</span>
+          </div>
+          <div class="section-controls">
+            <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
+            <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
+            <button class="section-control-btn delete" title="Delete Section">&times;</button>
+          </div>
+        </div>
+        <div class="writing-space images-space" id="${dropzoneId}" tabindex="0" placeholder="[Leave a large blank section for pasting experiment screenshots/images. Paste image (Ctrl+V) or Drag & Drop screenshot file directly here.]">
+          <div class="image-gallery" id="${galleryId}"></div>
+        </div>
+      `;
+      sectionsContainer.appendChild(section);
+      
+      updateSectionNumbers();
+      bindAllEvents();
+      saveAllData();
+      
+      section.querySelector('.section-title-text').focus();
+    };
+
+    // Clear Button Handler
+    clearBtn.addEventListener('click', function() {
+      if (confirm('Are you sure you want to clear the entire record? This deletes all text inputs, custom rows/columns, and screenshots.')) {
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith(STORAGE_PREFIX)) {
+            localStorage.removeItem(key);
+          }
+        });
+        window.location.reload();
+      }
+    });
+
+    // Save Backup JSON file trigger
+    document.getElementById('save-file-btn').addEventListener('click', function() {
+      if (isMathRendered) {
+        alert("Please turn off 'Preview Math' before exporting the backup.");
+        return;
+      }
+      
+      const backupData = {
+        version: "1.0",
+        exp_num: document.getElementById('exp-num-field').innerHTML,
+        sections_markup: sectionsContainer.innerHTML,
+        ruled_state: ruledToggle.checked
+      };
+      
+      const jsonString = JSON.stringify(backupData, null, 2);
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      
+      const rawExpNum = document.getElementById('exp-num-field').innerText.trim() || "______";
+      const filename = `VLSI_Exp_Record_${rawExpNum.replace(/[^a-zA-Z0-9]/g, "_")}.json`;
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    // Trigger Load file dialog
+    const fileInputHidden = document.getElementById('file-input-hidden');
+    document.getElementById('load-file-btn').addEventListener('click', function() {
+      if (isMathRendered) {
+        alert("Please turn off 'Preview Math' before loading a backup.");
+        return;
+      }
+      fileInputHidden.click();
+    });
+
+    // Read and import selected JSON file
+    fileInputHidden.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const importedData = JSON.parse(evt.target.result);
+          
+          if (!importedData.sections_markup) {
+            throw new Error("Invalid backup file structure.");
+          }
+          
+          if (confirm("Loading this backup will overwrite your current workspace. Are you sure?")) {
+            document.getElementById('exp-num-field').innerHTML = importedData.exp_num || "";
+            sectionsContainer.innerHTML = importedData.sections_markup;
+            
+            const isRuled = importedData.ruled_state === true;
+            ruledToggle.checked = isRuled;
+            toggleRuledClass(isRuled);
+            
+            updateSectionNumbers();
+            updateImageNumbers();
+            bindAllEvents();
+            saveAllData();
+            
+            alert("Backup loaded successfully!");
+          }
+        } catch (err) {
+          alert("Error loading backup: " + err.message);
+        }
+        fileInputHidden.value = "";
+      };
+      reader.readAsText(file);
+    });
+
+    // Initialize application data
+    loadAllData();
+  </script>
+</body>
+</html>
