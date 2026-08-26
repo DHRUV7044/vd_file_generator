@@ -466,32 +466,31 @@ window.addEventListener('load', function() {
   setTimeout(updateMathJaxStatus, 3000);
 });
 
-// Custom Parser converting Markdown styles and protecting LaTeX segments
 function parseRichText(text) {
+  // 1. Escape HTML to prevent injection first
+  let html = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
   let mathBlocks = [];
   let blockCount = 0;
   
-  // 1. Extract block math $$ ... $$
-  let tempText = text.replace(/\$\$([\s\S]*?)\$\$/g, function(match, formula) {
+  // 2. Extract block math $$ ... $$
+  html = html.replace(/\$\$([\s\S]*?)\$\$/g, function(match, formula) {
     const placeholder = `<!--MATHBLOCK_${blockCount}-->`;
     mathBlocks.push({ placeholder, formula: `$$${formula}$$` });
     blockCount++;
     return placeholder;
   });
   
-  // 2. Extract inline math $ ... $
-  tempText = tempText.replace(/\$([\s\S]*?)\$/g, function(match, formula) {
+  // 3. Extract inline math $ ... $
+  html = html.replace(/\$([\s\S]*?)\$/g, function(match, formula) {
     const placeholder = `<!--MATHBLOCK_${blockCount}-->`;
     mathBlocks.push({ placeholder, formula: `$${formula}$` });
     blockCount++;
     return placeholder;
   });
-  
-  // 3. Escape HTML to prevent injection and compile Markdown syntax
-  let html = tempText
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
   
   // Headers: # Title, ## Sub, ### Mini
   html = html.replace(/^### (.*?)$/gm, '<h3>$1</h3>');

@@ -368,10 +368,12 @@ body {
   background-color: #f1f5f9;
 }
 
+/* Standard Table Styling */
 .lab-table {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 10px;
+  table-layout: fixed; /* Force column widths to follow header width styles */
   page-break-inside: avoid;
   break-inside: avoid;
 }
@@ -380,6 +382,8 @@ body {
   border: 1px solid #000;
   padding: 6px 12px;
   text-align: left;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .lab-table th {
