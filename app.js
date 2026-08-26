@@ -23,8 +23,13 @@ let typingHistoryTimeout = null;
 function saveHistoryState() {
   if (isApplyingUndoRedo || isMathRendered) return;
   
+  const expDateField = document.getElementById('exp-date-field');
+  const startNumInput = document.getElementById('start-num-input');
+  
   const currentState = {
     expNum: document.getElementById('exp-num-field').innerHTML,
+    expDate: expDateField ? expDateField.innerHTML : "",
+    startNum: startNumInput ? startNumInput.value : "1",
     sectionsMarkup: sectionsContainer.innerHTML,
     ruledState: ruledToggle.checked,
     fontStyle: fontSelect.value,
@@ -53,6 +58,13 @@ function applyHistoryState(state) {
   isApplyingUndoRedo = true;
   
   document.getElementById('exp-num-field').innerHTML = state.expNum || "";
+  
+  const expDateField = document.getElementById('exp-date-field');
+  if (expDateField) expDateField.innerHTML = state.expDate || "";
+  
+  const startNumInput = document.getElementById('start-num-input');
+  if (startNumInput) startNumInput.value = state.startNum || "1";
+  
   sectionsContainer.innerHTML = migrateAndSanitizeHTML(state.sectionsMarkup || "");
   
   ruledToggle.checked = state.ruledState === true;
@@ -66,6 +78,8 @@ function applyHistoryState(state) {
   
   // Update browser cache in sync
   localStorage.setItem(STORAGE_PREFIX + 'exp_num', state.expNum);
+  if (expDateField) localStorage.setItem(STORAGE_PREFIX + 'exp_date', state.expDate || "");
+  if (startNumInput) localStorage.setItem(STORAGE_PREFIX + 'start_num', state.startNum || "1");
   localStorage.setItem(STORAGE_PREFIX + 'sections_markup', state.sectionsMarkup);
   localStorage.setItem(STORAGE_PREFIX + 'ruled_state', state.ruledState);
   localStorage.setItem(STORAGE_PREFIX + 'font_choice', state.fontStyle);
@@ -150,6 +164,17 @@ function saveAllData() {
   if (isMathRendered) return;
 
   localStorage.setItem(STORAGE_PREFIX + 'exp_num', document.getElementById('exp-num-field').innerHTML);
+  
+  const expDateField = document.getElementById('exp-date-field');
+  if (expDateField) {
+    localStorage.setItem(STORAGE_PREFIX + 'exp_date', expDateField.innerHTML);
+  }
+  
+  const startNumInput = document.getElementById('start-num-input');
+  if (startNumInput) {
+    localStorage.setItem(STORAGE_PREFIX + 'start_num', startNumInput.value);
+  }
+
   localStorage.setItem(STORAGE_PREFIX + 'sections_markup', sectionsContainer.innerHTML);
   localStorage.setItem(STORAGE_PREFIX + 'ruled_state', ruledToggle.checked);
   localStorage.setItem(STORAGE_PREFIX + 'font_choice', fontSelect.value);
@@ -291,6 +316,16 @@ function loadAllData() {
   const expNum = localStorage.getItem(STORAGE_PREFIX + 'exp_num');
   if (expNum !== null) document.getElementById('exp-num-field').innerHTML = expNum;
 
+  const expDate = localStorage.getItem(STORAGE_PREFIX + 'exp_date');
+  if (expDate !== null) {
+    const expDateField = document.getElementById('exp-date-field');
+    if (expDateField) expDateField.innerHTML = expDate;
+  }
+
+  const startNum = localStorage.getItem(STORAGE_PREFIX + 'start_num') || '1';
+  const startNumInput = document.getElementById('start-num-input');
+  if (startNumInput) startNumInput.value = startNum;
+
   const savedSections = localStorage.getItem(STORAGE_PREFIX + 'sections_markup');
   if (savedSections !== null) {
     sectionsContainer.innerHTML = migrateAndSanitizeHTML(savedSections);
@@ -319,11 +354,13 @@ function loadAllData() {
 
 // Update Section numbers sequentially (e.g. 1. AIM, 2. TOOL, etc.)
 function updateSectionNumbers() {
+  const startNumInput = document.getElementById('start-num-input');
+  const startNum = startNumInput ? parseInt(startNumInput.value, 10) || 1 : 1;
   const titles = sectionsContainer.querySelectorAll('.report-section');
   titles.forEach((sec, idx) => {
     const numSpan = sec.querySelector('.section-number');
     if (numSpan) {
-      numSpan.textContent = `${idx + 1}. `;
+      numSpan.textContent = `${startNum + idx}. `;
     }
   });
 }
@@ -808,7 +845,7 @@ function renderMathOnPage() {
   
   // Lock editing and store raw html in a data attribute
   const elementsToRender = document.querySelectorAll(
-    '.writing-space:not(.images-space), #exp-num-field, .editable-th, .lab-table td[contenteditable="true"], .section-title-text, .table-caption, .img-caption'
+    '.writing-space:not(.images-space), #exp-num-field, #exp-date-field, .editable-th, .lab-table td[contenteditable="true"], .section-title-text, .table-caption, .img-caption'
   );
   
   elementsToRender.forEach(el => {
@@ -1192,9 +1229,13 @@ document.getElementById('save-file-btn').addEventListener('click', function() {
     return;
   }
   
+  const expDateField = document.getElementById('exp-date-field');
+  const startNumInput = document.getElementById('start-num-input');
   const backupData = {
-    version: "1.2",
+    version: "1.3",
     exp_num: document.getElementById('exp-num-field').innerHTML,
+    exp_date: expDateField ? expDateField.innerHTML : "",
+    start_num: startNumInput ? startNumInput.value : "1",
     sections_markup: sectionsContainer.innerHTML,
     ruled_state: ruledToggle.checked,
     font_choice: fontSelect.value,
@@ -1243,6 +1284,17 @@ fileInputHidden.addEventListener('change', function(e) {
       
       if (confirm("Loading this backup will overwrite your current workspace. Are you sure?")) {
         document.getElementById('exp-num-field').innerHTML = importedData.exp_num || "";
+        
+        const expDateField = document.getElementById('exp-date-field');
+        if (expDateField) {
+          expDateField.innerHTML = importedData.exp_date || "";
+        }
+        
+        const startNumInput = document.getElementById('start-num-input');
+        if (startNumInput) {
+          startNumInput.value = importedData.start_num !== undefined ? importedData.start_num : "1";
+        }
+        
         sectionsContainer.innerHTML = migrateAndSanitizeHTML(importedData.sections_markup);
         
         const isRuled = importedData.ruled_state === true;
@@ -1308,6 +1360,7 @@ document.addEventListener('keydown', function(e) {
       activeEl.classList.contains('section-title-text') || 
       activeEl.classList.contains('editable-th') || 
       activeEl.id === 'exp-num-field' ||
+      activeEl.id === 'exp-date-field' ||
       activeEl.classList.contains('editable-exp-num') ||
       activeEl.classList.contains('table-caption') ||
       activeEl.classList.contains('img-caption')
@@ -1316,6 +1369,16 @@ document.addEventListener('keydown', function(e) {
     }
   }
 });
+
+// Bind Starting Section Number listener
+const startNumInput = document.getElementById('start-num-input');
+if (startNumInput) {
+  startNumInput.addEventListener('input', function() {
+    saveHistoryState();
+    updateSectionNumbers();
+    saveAllData();
+  });
+}
 
 // Bind sidebar Undo/Redo button clicks
 const undoBtn = document.getElementById('undo-btn');
