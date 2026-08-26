@@ -256,10 +256,8 @@
       font-style: normal;
     }
 
-    /* Prevent Section Splitting Across Pages */
+    /* Allow sections to break naturally across pages, but prevent orphan headings */
     .report-section {
-      page-break-inside: avoid;
-      break-inside: avoid;
       margin-bottom: 10px;
     }
 
@@ -692,10 +690,7 @@
         background: #fff !important;
       }
 
-      .report-section {
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-      }
+
 
       .section-header-row {
         border-bottom: 1px solid #000 !important;
