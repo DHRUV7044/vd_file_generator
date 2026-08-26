@@ -431,6 +431,16 @@ The threshold voltage is given by $V_{TH} = V_{T0} + \gamma(\sqrt{2\phi_f + V_{S
       <!-- Option Switches -->
       <div class="sidebar-section">
         <div class="section-label">Options</div>
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+          <button class="btn btn-secondary" id="undo-btn" title="Undo (Ctrl+Z)" style="flex: 1; padding: 6px 0; font-size: 11px; justify-content: center;" disabled>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
+            Undo
+          </button>
+          <button class="btn btn-secondary" id="redo-btn" title="Redo (Ctrl+Y)" style="flex: 1; padding: 6px 0; font-size: 11px; justify-content: center;" disabled>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3.2 2.7"></path></svg>
+            Redo
+          </button>
+        </div>
         <label class="toggle-container">
           <input type="checkbox" id="math-toggle">
           <span>Preview Math & Markdown</span>

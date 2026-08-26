@@ -13,6 +13,106 @@ const STORAGE_PREFIX = 'vlsi_lab_record_';
 let isMathRendered = false;
 let lastActiveEditable = null;
 
+// Undo/Redo State History Managers
+const undoStack = [];
+const redoStack = [];
+const MAX_HISTORY = 50;
+let isApplyingUndoRedo = false;
+let typingHistoryTimeout = null;
+
+function saveHistoryState() {
+  if (isApplyingUndoRedo || isMathRendered) return;
+  
+  const currentState = {
+    expNum: document.getElementById('exp-num-field').innerHTML,
+    sectionsMarkup: sectionsContainer.innerHTML,
+    ruledState: ruledToggle.checked,
+    fontStyle: fontSelect.value,
+    marginStyle: marginSelect.value
+  };
+  
+  // Prevent duplicate states
+  if (undoStack.length > 0) {
+    const lastState = undoStack[undoStack.length - 1];
+    if (JSON.stringify(lastState) === JSON.stringify(currentState)) {
+      return;
+    }
+  }
+  
+  undoStack.push(currentState);
+  if (undoStack.length > MAX_HISTORY) {
+    undoStack.shift();
+  }
+  
+  redoStack.length = 0; // Clear redo on action
+  updateUndoRedoButtons();
+}
+
+function applyHistoryState(state) {
+  if (!state) return;
+  isApplyingUndoRedo = true;
+  
+  document.getElementById('exp-num-field').innerHTML = state.expNum || "";
+  sectionsContainer.innerHTML = migrateAndSanitizeHTML(state.sectionsMarkup || "");
+  
+  ruledToggle.checked = state.ruledState === true;
+  toggleRuledClass(ruledToggle.checked);
+  
+  fontSelect.value = state.fontStyle || 'font-times';
+  applyFontClass(fontSelect.value);
+  
+  marginSelect.value = state.marginStyle || 'margin-standard';
+  applyMarginClass(marginSelect.value);
+  
+  // Update browser cache in sync
+  localStorage.setItem(STORAGE_PREFIX + 'exp_num', state.expNum);
+  localStorage.setItem(STORAGE_PREFIX + 'sections_markup', state.sectionsMarkup);
+  localStorage.setItem(STORAGE_PREFIX + 'ruled_state', state.ruledState);
+  localStorage.setItem(STORAGE_PREFIX + 'font_choice', state.fontStyle);
+  localStorage.setItem(STORAGE_PREFIX + 'margin_choice', state.marginStyle);
+  
+  updateSectionNumbers();
+  updateImageNumbers();
+  bindAllEvents();
+  
+  isApplyingUndoRedo = false;
+  updateUndoRedoButtons();
+}
+
+function undo() {
+  if (isMathRendered || undoStack.length <= 1) return;
+  
+  const currentState = undoStack.pop();
+  redoStack.push(currentState);
+  
+  const prevState = undoStack[undoStack.length - 1];
+  applyHistoryState(prevState);
+}
+
+function redo() {
+  if (isMathRendered || redoStack.length === 0) return;
+  
+  const nextState = redoStack.pop();
+  undoStack.push(nextState);
+  applyHistoryState(nextState);
+}
+
+function updateUndoRedoButtons() {
+  const undoBtn = document.getElementById('undo-btn');
+  const redoBtn = document.getElementById('redo-btn');
+  if (undoBtn && redoBtn) {
+    undoBtn.disabled = isMathRendered || undoStack.length <= 1;
+    redoBtn.disabled = isMathRendered || redoStack.length === 0;
+  }
+}
+
+function handleTypingHistory() {
+  if (typingHistoryTimeout) clearTimeout(typingHistoryTimeout);
+  typingHistoryTimeout = setTimeout(() => {
+    saveHistoryState();
+  }, 1000);
+}
+
 // Dynamically inject MathJax layout protection styles to bypass HTML caches
 function injectMathStyles() {
   const styleId = 'mathjax-dynamic-resets';
@@ -54,6 +154,8 @@ function saveAllData() {
   localStorage.setItem(STORAGE_PREFIX + 'ruled_state', ruledToggle.checked);
   localStorage.setItem(STORAGE_PREFIX + 'font_choice', fontSelect.value);
   localStorage.setItem(STORAGE_PREFIX + 'margin_choice', marginSelect.value);
+  
+  handleTypingHistory();
 }
 
 // Auto-migrator to modernize loaded document states, injecting colgroups and restoring math symbols
@@ -210,6 +312,9 @@ function loadAllData() {
 
   // Bind all interactive events to DOM
   bindAllEvents();
+
+  // Initial history snapshot
+  saveHistoryState();
 }
 
 // Update Section numbers sequentially (e.g. 1. AIM, 2. TOOL, etc.)
@@ -237,6 +342,7 @@ function updateImageNumbers() {
 // Move Section Up DOM handler
 function moveSectionUp(btn) {
   if (isMathRendered) return;
+  saveHistoryState();
   const section = btn.closest('.report-section');
   const previous = section.previousElementSibling;
   if (previous && previous.classList.contains('report-section')) {
@@ -249,6 +355,7 @@ function moveSectionUp(btn) {
 // Move Section Down DOM handler
 function moveSectionDown(btn) {
   if (isMathRendered) return;
+  saveHistoryState();
   const section = btn.closest('.report-section');
   const next = section.nextElementSibling;
   if (next && next.classList.contains('report-section')) {
@@ -262,6 +369,7 @@ function moveSectionDown(btn) {
 function deleteSection(btn) {
   if (isMathRendered) return;
   if (confirm('Are you sure you want to delete this entire section and all its contents?')) {
+    saveHistoryState();
     const section = btn.closest('.report-section');
     section.remove();
     updateSectionNumbers();
@@ -274,6 +382,7 @@ function deleteSection(btn) {
 function deleteSubBlock(btn) {
   if (isMathRendered) return;
   if (confirm('Are you sure you want to delete this element?')) {
+    saveHistoryState();
     const wrapper = btn.closest('.sub-block-wrapper') || btn.closest('.table-container') || btn.closest('.images-space-wrapper');
     if (wrapper) {
       wrapper.remove();
@@ -288,6 +397,7 @@ function addRow(tableId) {
   if (isMathRendered) return;
   const table = document.getElementById(tableId);
   if (!table) return;
+  saveHistoryState();
   const theadRow = table.querySelector('thead tr');
   const tbody = table.querySelector('tbody');
   const colsCount = theadRow.children.length;
@@ -330,6 +440,7 @@ function addColumn(tableId) {
   if (isMathRendered) return;
   const table = document.getElementById(tableId);
   if (!table) return;
+  saveHistoryState();
   const theadRow = table.querySelector('thead tr');
   const tbodyRows = table.querySelectorAll('tbody tr');
   const colsCount = theadRow.children.length;
@@ -369,6 +480,7 @@ function addColumn(tableId) {
 // Delete a column from a table
 function deleteColumn(thElement) {
   if (isMathRendered) return;
+  saveHistoryState();
   const table = thElement.closest('table');
   const theadRow = table.querySelector('thead tr');
   const index = Array.from(theadRow.children).indexOf(thElement);
@@ -474,6 +586,7 @@ function insertTemplateText(text) {
 
 // Dynamic Margin Setup Changer
 marginSelect.addEventListener('change', function(e) {
+  saveHistoryState();
   applyMarginClass(e.target.value);
   saveAllData();
 });
@@ -486,6 +599,7 @@ function applyMarginClass(marginClass) {
 
 // Dynamic Font Setup Changer
 fontSelect.addEventListener('change', function(e) {
+  saveHistoryState();
   applyFontClass(e.target.value);
   saveAllData();
 });
@@ -730,12 +844,15 @@ function restoreRawText() {
   
   isMathRendered = false;
   bindAllEvents();
+  updateUndoRedoButtons();
 }
 
 // Toggle Math Preview Listener
 mathToggle.addEventListener('change', function(e) {
   if (e.target.checked) {
-    renderMathOnPage();
+    renderMathOnPage().then(() => {
+      updateUndoRedoButtons();
+    });
   } else {
     restoreRawText();
   }
@@ -767,6 +884,7 @@ function toggleRuledClass(isRuled) {
 
 // Handle Ruled Lines Toggle
 ruledToggle.addEventListener('change', function(e) {
+  saveHistoryState();
   toggleRuledClass(e.target.checked);
   saveAllData();
 });
@@ -882,6 +1000,7 @@ function createSubTextBlockHTML() {
 // Add elements inside a section body
 function addTableToSectionBody(btn) {
   if (isMathRendered) return;
+  saveHistoryState();
   const body = btn.closest('.report-section').querySelector('.section-body');
   const temp = document.createElement('div');
   temp.innerHTML = createSubTableBlockHTML();
@@ -892,6 +1011,7 @@ function addTableToSectionBody(btn) {
 
 function addImageSpaceToSectionBody(btn) {
   if (isMathRendered) return;
+  saveHistoryState();
   const body = btn.closest('.report-section').querySelector('.section-body');
   const temp = document.createElement('div');
   temp.innerHTML = createSubImagesBlockHTML();
@@ -902,6 +1022,7 @@ function addImageSpaceToSectionBody(btn) {
 
 function addTextBlockToSectionBody(btn) {
   if (isMathRendered) return;
+  saveHistoryState();
   const body = btn.closest('.report-section').querySelector('.section-body');
   const temp = document.createElement('div');
   temp.innerHTML = createSubTextBlockHTML();
@@ -1193,6 +1314,36 @@ document.addEventListener('keydown', function(e) {
     )) {
       e.preventDefault();
     }
+  }
+});
+
+// Bind sidebar Undo/Redo button clicks
+const undoBtn = document.getElementById('undo-btn');
+const redoBtn = document.getElementById('redo-btn');
+if (undoBtn && redoBtn) {
+  undoBtn.onclick = undo;
+  redoBtn.onclick = redo;
+}
+
+// Keyboard Shortcuts listener (Ctrl+Z and Ctrl+Y)
+document.addEventListener('keydown', function(e) {
+  if (isMathRendered) return;
+
+  // Ctrl + Z (Undo / Redo if Shift pressed)
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+    if (e.shiftKey) {
+      e.preventDefault();
+      redo();
+    } else {
+      e.preventDefault();
+      undo();
+    }
+  }
+  
+  // Ctrl + Y (Redo)
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+    e.preventDefault();
+    redo();
   }
 });
 
