@@ -153,7 +153,7 @@ body {
 /* Editable Experiment Number & Date Spans */
 .editable-exp-num {
   outline: none;
-  min-width: 80px;
+  min-width: 30px;
   display: inline-block;
   border-bottom: 1px dashed #888;
   padding: 0 4px;
