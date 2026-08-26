@@ -486,8 +486,9 @@ function parseRichText(text) {
   
   // 3. Extract inline math $ ... $
   html = html.replace(/\$([\s\S]*?)\$/g, function(match, formula) {
+    const cleanFormula = formula.replace(/[\r\n]/g, '').trim();
     const placeholder = `<!--MATHBLOCK_${blockCount}-->`;
-    mathBlocks.push({ placeholder, formula: `$${formula}$` });
+    mathBlocks.push({ placeholder, formula: `$${cleanFormula}$` });
     blockCount++;
     return placeholder;
   });
