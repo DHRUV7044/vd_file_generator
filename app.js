@@ -56,6 +56,93 @@ function saveAllData() {
   localStorage.setItem(STORAGE_PREFIX + 'margin_choice', marginSelect.value);
 }
 
+// Auto-migrator to modernize loaded document states, injecting colgroups and restoring math symbols
+function migrateAndSanitizeHTML(htmlString) {
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = htmlString;
+  
+  // 1. Inject colgroups to params-table if missing
+  const paramsTable = tempDiv.querySelector('#params-table');
+  if (paramsTable && !paramsTable.querySelector('colgroup')) {
+    const colgroup = document.createElement('colgroup');
+    colgroup.innerHTML = `
+      <col style="width: 45%;">
+      <col style="width: 25%;">
+      <col style="width: 20%;">
+      <col style="width: 10%;" class="table-actions-column">
+    `;
+    paramsTable.insertBefore(colgroup, paramsTable.firstChild);
+  }
+  
+  // 2. Inject colgroups to comparison-table if missing
+  const compTable = tempDiv.querySelector('#comparison-table');
+  if (compTable && !compTable.querySelector('colgroup')) {
+    const colgroup = document.createElement('colgroup');
+    colgroup.innerHTML = `
+      <col style="width: 40%;">
+      <col style="width: 25%;">
+      <col style="width: 25%;">
+      <col style="width: 10%;" class="table-actions-column">
+    `;
+    compTable.insertBefore(colgroup, compTable.firstChild);
+  }
+
+  // 3. Ensure a colgroup exists on all other tables matching columns count
+  const allTables = tempDiv.querySelectorAll('.lab-table');
+  allTables.forEach(table => {
+    if (!table.querySelector('colgroup')) {
+      const colgroup = document.createElement('colgroup');
+      const headerCols = table.querySelectorAll('thead tr th').length;
+      let colHtml = '';
+      for (let i = 0; i < headerCols; i++) {
+        if (i === headerCols - 1) {
+          colHtml += '<col style="width: 10%;" class="table-actions-column">';
+        } else {
+          colHtml += `<col style="width: ${Math.floor(90 / (headerCols - 1))}%">`;
+        }
+      }
+      colgroup.innerHTML = colHtml;
+      table.insertBefore(colgroup, table.firstChild);
+    }
+  });
+
+  // 4. Sanitize and restore LaTeX symbols inside table cells
+  const cells = tempDiv.querySelectorAll('.lab-table td[contenteditable="true"], .lab-table th span.editable-th');
+  cells.forEach(cell => {
+    let text = cell.innerText.replace(/\s+/g, ' ').trim(); // Flatten carriage returns to space
+    
+    // replacements rules to auto-heal symbols
+    const replacements = [
+      { regex: /^V\s*D\s*D$/i, replacement: '$V_{DD}$' },
+      { regex: /^V\s*T\s*H$/i, replacement: '$V_{TH}$' },
+      { regex: /^V\s*O\s*H$/i, replacement: '$V_{OH}$' },
+      { regex: /^V\s*O\s*L$/i, replacement: '$V_{OL}$' },
+      { regex: /^V\s*I\s*H$/i, replacement: '$V_{IH}$' },
+      { regex: /^V\s*I\s*L$/i, replacement: '$V_{IL}$' },
+      { regex: /^N\s*M\s*H$/i, replacement: '$NM_H$' },
+      { regex: /^N\s*M\s*L$/i, replacement: '$NM_L$' },
+      { regex: /^t\s*p\s*H\s*L$/i, replacement: '$t_{pHL}$' },
+      { regex: /^t\s*p\s*L\s*H$/i, replacement: '$t_{pLH}$' },
+      { regex: /^t\s*p$/i, replacement: '$t_p$' },
+      { regex: /^t\s*r$/i, replacement: '$t_r$' },
+      { regex: /^t\s*f$/i, replacement: '$t_f$' },
+      { regex: /^PMOS Width\s*\(?\s*W\s*p\s*\)?$/i, replacement: 'PMOS Width ($W_p$)' },
+      { regex: /^NMOS Width\s*\(?\s*W\s*n\s*\)?$/i, replacement: 'NMOS Width ($W_n$)' },
+      { regex: /^Input Rise Time\s*\(?\s*t\s*r\s*\)?$/i, replacement: 'Input Rise Time ($t_r$)' },
+      { regex: /^Input Fall Time\s*\(?\s*t\s*f\s*\)?$/i, replacement: 'Input Fall Time ($t_f$)' }
+    ];
+
+    for (let rule of replacements) {
+      if (rule.regex.test(text)) {
+        cell.innerHTML = rule.replacement;
+        break;
+      }
+    }
+  });
+
+  return tempDiv.innerHTML;
+}
+
 // Load Data Function (Restores full serialized markup)
 function loadAllData() {
   const expNum = localStorage.getItem(STORAGE_PREFIX + 'exp_num');
@@ -63,7 +150,7 @@ function loadAllData() {
 
   const savedSections = localStorage.getItem(STORAGE_PREFIX + 'sections_markup');
   if (savedSections !== null) {
-    sectionsContainer.innerHTML = savedSections;
+    sectionsContainer.innerHTML = migrateAndSanitizeHTML(savedSections);
   }
 
   const savedRuledState = localStorage.getItem(STORAGE_PREFIX + 'ruled_state') === 'true';
@@ -216,6 +303,13 @@ function addColumn(tableId) {
 
   theadRow.insertBefore(th, theadRow.children[colsCount - 1]);
 
+  const colgroup = table.querySelector('colgroup');
+  if (colgroup) {
+    const col = document.createElement('col');
+    col.style.width = '20%'; // Default width for new columns
+    colgroup.insertBefore(col, colgroup.children[colgroup.children.length - 1]);
+  }
+
   th.querySelector('.delete-col-btn').onclick = function() {
     deleteColumn(th);
   };
@@ -241,6 +335,11 @@ function deleteColumn(thElement) {
   if (index === -1) return;
 
   thElement.remove();
+
+  const colgroup = table.querySelector('colgroup');
+  if (colgroup && colgroup.children[index]) {
+    colgroup.children[index].remove();
+  }
 
   const tbodyRows = table.querySelectorAll('tbody tr');
   tbodyRows.forEach(row => {
@@ -977,7 +1076,7 @@ fileInputHidden.addEventListener('change', function(e) {
       
       if (confirm("Loading this backup will overwrite your current workspace. Are you sure?")) {
         document.getElementById('exp-num-field').innerHTML = importedData.exp_num || "";
-        sectionsContainer.innerHTML = importedData.sections_markup;
+        sectionsContainer.innerHTML = migrateAndSanitizeHTML(importedData.sections_markup);
         
         const isRuled = importedData.ruled_state === true;
         ruledToggle.checked = isRuled;
