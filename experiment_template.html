@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Experiment Lab Record Template</title>
+  <title>Experiment Lab Record Editor</title>
   
   <!-- MathJax Configuration for LaTeX Rendering -->
   <script>
@@ -22,16 +22,17 @@
   <script id="MathJax-script" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.min.js"></script>
 
   <style>
-    /* Clean Design Tokens for the Browser Editor Shell */
+    /* Premium Theme Design Tokens (Modern Slate Theme) */
     :root {
       --primary: #6366f1;
       --primary-hover: #4f46e5;
       --accent: #a855f7;
       --bg-dark: #0f172a;
-      --panel-bg: rgba(30, 41, 59, 0.7);
-      --panel-border: rgba(255, 255, 255, 0.1);
+      --panel-bg: rgba(30, 41, 59, 0.75);
+      --panel-border: rgba(255, 255, 255, 0.08);
       --text-light: #f8fafc;
       --text-muted: #94a3b8;
+      --sidebar-width: 320px;
     }
 
     /* Reset & Base Styles */
@@ -45,183 +46,81 @@
       background-color: var(--bg-dark);
       color: #000;
       font-family: system-ui, -apple-system, sans-serif;
-      overflow-y: scroll;
+      overflow: hidden; /* Handled by internal scroll areas */
     }
 
-    /* Interactive Control Panel at Top (Hidden on Print) */
-    .control-panel {
-      position: fixed;
-      top: 15px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: calc(100% - 40px);
-      max-width: 950px;
-      background: var(--panel-bg);
-      backdrop-filter: blur(16px);
-      border: 1px solid var(--panel-border);
-      border-radius: 16px;
-      padding: 12px 20px;
+    /* Master Layout Wrapper */
+    .app-layout {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      z-index: 1000;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 
-                  0 8px 10px -6px rgba(0, 0, 0, 0.3),
-                  0 0 20px rgba(99, 102, 241, 0.15);
-      color: var(--text-light);
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
     }
 
-    .panel-left {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .panel-title {
-      font-size: 14px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      background: linear-gradient(to right, #818cf8, #c084fc);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      text-transform: uppercase;
-    }
-
-    .panel-subtitle {
-      font-size: 11px;
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .status-badge {
-      font-weight: bold;
-      font-size: 10px;
-      background: rgba(255, 255, 255, 0.05);
-      padding: 2px 6px;
-      border-radius: 4px;
-      color: #fb7185; /* Default salmon-red for checking */
-      transition: all 0.3s;
-    }
-
-    .panel-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    /* Ruled Lines & Math Toggles Design */
-    .toggle-container {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      cursor: pointer;
-      user-select: none;
-      background: rgba(255, 255, 255, 0.05);
-      padding: 6px 12px;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      transition: background 0.2s;
-    }
-
-    .toggle-container:hover {
-      background: rgba(255, 255, 255, 0.08);
-    }
-
-    .toggle-container input {
-      cursor: pointer;
-    }
-
-    /* Premium Action Buttons */
-    .btn {
-      font-size: 12px;
-      font-weight: 600;
-      padding: 8px 16px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      color: #fff;
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 16px rgba(99, 102, 241, 0.35);
-    }
-
-    .btn-danger {
-      background: rgba(239, 68, 68, 0.1);
-      color: #f87171;
-      border: 1px solid rgba(239, 68, 68, 0.2);
-    }
-
-    .btn-danger:hover {
-      background: rgba(239, 68, 68, 0.2);
-      transform: translateY(-1px);
-    }
-
-    /* Page Workspace Container */
-    .document-workspace {
+    /* Centered Document Page Workspace */
+    .editor-workspace {
+      flex-grow: 1;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 40px 20px 80px 20px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding-top: 100px;
-      padding-bottom: 60px;
-      min-height: 100vh;
-      background-color: var(--bg-dark);
-      background-image: radial-gradient(rgba(99, 102, 241, 0.04) 1px, transparent 0),
-                        radial-gradient(rgba(168, 85, 247, 0.04) 1px, transparent 0);
-      background-size: 40px 40px;
-      background-position: 0 0, 20px 20px;
+      background-color: #0b0f19;
+      background-image: radial-gradient(rgba(99, 102, 241, 0.03) 1.5px, transparent 0),
+                        radial-gradient(rgba(168, 85, 247, 0.03) 1.5px, transparent 0);
+      background-size: 32px 32px;
+      background-position: 0 0, 16px 16px;
     }
 
-    /* A4 Physical Paper Simulation on Screen - Continuous Flow */
+    /* A4 Physical Paper Simulation */
     .page {
       background: #fff;
       width: 210mm;
       min-height: 297mm;
-      padding: 20mm 15mm 20mm 25mm; /* Wider left margin for spiral binding/filing */
-      margin: 25px auto;
+      margin-bottom: 30px;
       box-sizing: border-box;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 20px rgba(99, 102, 241, 0.05);
       position: relative;
       display: flex;
       flex-direction: column;
+      transition: padding 0.3s ease;
     }
 
-    /* Prevent MathJax elements from inheriting parent pre-wrap breaks or line spacing */
-    mjx-container {
-      white-space: nowrap !important;
-      display: inline-block !important;
-      line-height: 0 !important;
-      margin: 0 !important;
-      padding: 0 !important;
+    /* Margin configurations */
+    .page.margin-standard { padding: 20mm 15mm 20mm 25mm; }
+    .page.margin-narrow { padding: 15mm 15mm 15mm 15mm; }
+    .page.margin-wide { padding: 25mm 20mm 25mm 30mm; }
+
+    /* Font configurations */
+    .page.font-times, .page.font-times td, .page.font-times th, .page.font-times input {
+      font-family: "Times New Roman", Times, Georgia, serif;
+    }
+    .page.font-arial, .page.font-arial td, .page.font-arial th, .page.font-arial input {
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .page.font-georgia, .page.font-georgia td, .page.font-georgia th, .page.font-georgia input {
+      font-family: Georgia, serif;
     }
 
-    mjx-container[display="true"] {
-      display: block !important;
-      text-align: center;
-      margin: 1em auto !important;
-      white-space: nowrap !important;
-    }
-
-    /* Strict Typography for A4 VLSI Lab Report */
-    .page, .page td, .page th, .page input, .page textarea {
-      font-family: "Times New Roman", Times, Baskerville, Georgia, serif;
+    /* General Typography settings inside the paper sheet */
+    .page, .page td, .page th {
       font-size: 12pt;
       line-height: 1.5;
       color: #000;
     }
+
+    /* Rendered Markdown Tags inside Paper */
+    .page h1 { font-size: 16pt; margin: 10px 0 6px 0; font-weight: bold; }
+    .page h2 { font-size: 14pt; margin: 8px 0 4px 0; font-weight: bold; }
+    .page h3 { font-size: 12pt; margin: 6px 0 2px 0; font-weight: bold; }
+    .page ul { margin-left: 24px; margin-bottom: 8px; list-style-type: disc; }
+    .page li { margin-bottom: 2px; }
+    .page strong { font-weight: bold; }
+    .page em { font-style: italic; }
+    .page u { text-decoration: underline; }
+    .page code { font-family: monospace; background-color: #f1f5f9; padding: 2px 4px; border-radius: 3px; font-size: 10.5pt; }
 
     /* Header for Experiment page */
     .experiment-header {
@@ -229,7 +128,7 @@
       font-weight: bold;
       margin-bottom: 25px;
       text-align: left;
-      border-bottom: 1px solid #000;
+      border-bottom: 1.5px solid #000;
       padding-bottom: 5px;
       display: flex;
       align-items: center;
@@ -695,7 +594,7 @@
       background-color: #dc2626;
     }
 
-    /* Add Section Control Bar (Hidden on print) */
+    /* Add Section Control Bar */
     .add-section-bar {
       width: 210mm;
       margin: 15px auto 40px auto;
@@ -733,6 +632,111 @@
       transform: translateY(-1px);
     }
 
+    /* Right Side Control Dashboard (IDE Shell) */
+    .sidebar {
+      width: var(--sidebar-width);
+      height: 100vh;
+      background: var(--panel-bg);
+      backdrop-filter: blur(20px);
+      border-left: 1px solid var(--panel-border);
+      display: flex;
+      flex-direction: column;
+      color: var(--text-light);
+      padding: 24px;
+      gap: 24px;
+      overflow-y: auto;
+      flex-shrink: 0;
+      z-index: 100;
+    }
+
+    .sidebar-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sidebar-title {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      background: linear-gradient(to right, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+    }
+
+    .sidebar-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: -6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 4px;
+      margin-bottom: 4px;
+    }
+
+    .sidebar-select {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      color: var(--text-light);
+      padding: 8px 10px;
+      font-size: 12px;
+      outline: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .sidebar-select:hover {
+      border-color: rgba(99, 102, 241, 0.5);
+    }
+
+    .sidebar-select option {
+      background: #1e293b;
+      color: #fff;
+    }
+
+    /* Code Snippets/Math Helpers Grid */
+    .helper-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .btn-helper {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 6px;
+      color: var(--text-muted);
+      padding: 6px 10px;
+      font-size: 10.5px;
+      cursor: pointer;
+      text-align: left;
+      font-family: monospace;
+      transition: all 0.2s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .btn-helper:hover {
+      background: rgba(99, 102, 241, 0.08);
+      border-color: var(--primary);
+      color: var(--text-light);
+      transform: translateY(-0.5px);
+    }
+
     /* Print Specific Media Queries */
     @media print {
       @page {
@@ -743,16 +747,25 @@
       body {
         background-color: #fff !important;
         background-image: none !important;
+        overflow: visible !important;
       }
 
-      .control-panel, .add-section-bar, .section-controls, .section-element-bar, .block-controls-row {
+      .app-layout {
+        display: block !important;
+        height: auto !important;
+        overflow: visible !important;
+      }
+
+      .sidebar, .add-section-bar, .section-controls, .section-element-bar, .block-controls-row {
         display: none !important;
       }
 
-      .document-workspace {
+      .editor-workspace {
         padding: 0 !important;
         background: none !important;
-        min-height: auto !important;
+        height: auto !important;
+        overflow: visible !important;
+        display: block !important;
       }
 
       .page {
@@ -818,454 +831,517 @@
 </head>
 <body>
 
-  <!-- Workspace Header & Control Panel -->
-  <div class="control-panel">
-    <div class="panel-left">
-      <div class="panel-title">VLSI Lab Record Workspace</div>
-      <div class="panel-subtitle">
-        Interactive CMOS Inverter Layout Template 
-        <span id="math-status-badge" class="status-badge">● Checking LaTeX...</span>
-      </div>
-    </div>
-    <div class="panel-actions">
-      <label class="toggle-container" id="math-toggle-label">
-        <input type="checkbox" id="math-toggle">
-        <span>Preview Math (LaTeX)</span>
-      </label>
-      <label class="toggle-container" id="ruled-toggle-label">
-        <input type="checkbox" id="ruled-toggle">
-        <span>Ruled lines for hand-writing</span>
-      </label>
-      <button class="btn" style="background: rgba(255,255,255,0.08); color: var(--text-light);" id="save-file-btn" title="Export Backup JSON">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-        Save File
-      </button>
-      <button class="btn" style="background: rgba(255,255,255,0.08); color: var(--text-light);" id="load-file-btn" title="Import Backup JSON">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-        Load File
-      </button>
-      <input type="file" id="file-input-hidden" accept=".json" style="display: none;">
-      <button class="btn btn-danger" id="clear-btn">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-        Clear All
-      </button>
-      <button class="btn btn-primary" onclick="printDocument()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-        Print Record
-      </button>
-    </div>
-  </div>
+  <!-- Layout Wrapper -->
+  <div class="app-layout">
 
-  <!-- Main Continuous Flow Workspace -->
-  <div class="document-workspace">
-
-    <!-- Single Continuous Sheet -->
-    <div class="page" id="main-lab-sheet">
+    <!-- Document Workspace -->
+    <div class="editor-workspace">
       
-      <div class="experiment-header">
-        EXPERIMENT NO. <span contenteditable="true" class="editable-exp-num" id="exp-num-field" placeholder="______"></span>
-      </div>
-
-      <!-- Content Area containing modular sections -->
-      <div id="sections-container">
+      <!-- A4 Page -->
+      <div class="page margin-standard font-times" id="main-lab-sheet">
         
-        <!-- 1. AIM Section -->
-        <div class="report-section" data-type="text">
-          <div class="section-header-row">
-            <div class="section-title-container">
-              <span class="section-number">1. </span>
-              <span class="section-title-text" contenteditable="true">AIM</span>
-            </div>
-            <div class="section-controls">
-              <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
-              <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
-              <button class="section-control-btn delete" title="Delete Section">&times;</button>
-            </div>
-          </div>
-          <div class="section-body">
-            <div class="writing-space aim-space" contenteditable="true" placeholder="[Leave blank space for the student to write the aim. Click here to type.]"></div>
-          </div>
-          <div class="section-element-bar">
-            <button class="btn-sec-add" onclick="addTableToSectionBody(this)">+ Add Table Grid</button>
-            <button class="btn-sec-add" onclick="addImageSpaceToSectionBody(this)">+ Add Image Dropzone</button>
-            <button class="btn-sec-add" onclick="addTextBlockToSectionBody(this)">+ Add Text Area</button>
-          </div>
+        <div class="experiment-header">
+          EXPERIMENT NO. <span contenteditable="true" class="editable-exp-num" id="exp-num-field" placeholder="______"></span>
         </div>
 
-        <!-- 2. TOOL Section -->
-        <div class="report-section" data-type="text">
-          <div class="section-header-row">
-            <div class="section-title-container">
-              <span class="section-number">2. </span>
-              <span class="section-title-text" contenteditable="true">TOOL</span>
+        <div id="sections-container">
+          
+          <!-- 1. AIM Section -->
+          <div class="report-section" data-type="text">
+            <div class="section-header-row">
+              <div class="section-title-container">
+                <span class="section-number">1. </span>
+                <span class="section-title-text" contenteditable="true">AIM</span>
+              </div>
+              <div class="section-controls">
+                <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
+                <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
+                <button class="section-control-btn delete" title="Delete Section">&times;</button>
+              </div>
             </div>
-            <div class="section-controls">
-              <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
-              <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
-              <button class="section-control-btn delete" title="Delete Section">&times;</button>
+            <div class="section-body">
+              <div class="writing-space aim-space" contenteditable="true" placeholder="[Leave blank space for the student to write the aim. Click here to type.]"></div>
+            </div>
+            <div class="section-element-bar">
+              <button class="btn-sec-add" onclick="addTableToSectionBody(this)">+ Add Table Grid</button>
+              <button class="btn-sec-add" onclick="addImageSpaceToSectionBody(this)">+ Add Image Dropzone</button>
+              <button class="btn-sec-add" onclick="addTextBlockToSectionBody(this)">+ Add Text Area</button>
             </div>
           </div>
-          <div class="section-body">
-            <div class="writing-space tool-space" contenteditable="true" placeholder="[Leave blank space for the student to write the tools/software. Click here to type.]"></div>
-          </div>
-          <div class="section-element-bar">
-            <button class="btn-sec-add" onclick="addTableToSectionBody(this)">+ Add Table Grid</button>
-            <button class="btn-sec-add" onclick="addImageSpaceToSectionBody(this)">+ Add Image Dropzone</button>
-            <button class="btn-sec-add" onclick="addTextBlockToSectionBody(this)">+ Add Text Area</button>
-          </div>
-        </div>
 
-        <!-- 3. THEORY Section -->
-        <div class="report-section" data-type="text">
-          <div class="section-header-row">
-            <div class="section-title-container">
-              <span class="section-number">3. </span>
-              <span class="section-title-text" contenteditable="true">THEORY</span>
+          <!-- 2. TOOL Section -->
+          <div class="report-section" data-type="text">
+            <div class="section-header-row">
+              <div class="section-title-container">
+                <span class="section-number">2. </span>
+                <span class="section-title-text" contenteditable="true">TOOL</span>
+              </div>
+              <div class="section-controls">
+                <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
+                <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
+                <button class="section-control-btn delete" title="Delete Section">&times;</button>
+              </div>
             </div>
-            <div class="section-controls">
-              <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
-              <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
-              <button class="section-control-btn delete" title="Delete Section">&times;</button>
+            <div class="section-body">
+              <div class="writing-space tool-space" contenteditable="true" placeholder="[Leave blank space for the student to write the tools/software. Click here to type.]"></div>
+            </div>
+            <div class="section-element-bar">
+              <button class="btn-sec-add" onclick="addTableToSectionBody(this)">+ Add Table Grid</button>
+              <button class="btn-sec-add" onclick="addImageSpaceToSectionBody(this)">+ Add Image Dropzone</button>
+              <button class="btn-sec-add" onclick="addTextBlockToSectionBody(this)">+ Add Text Area</button>
             </div>
           </div>
-          <div class="section-body">
-            <div class="writing-space theory-space" contenteditable="true" placeholder="[Leave a sufficiently large blank section. The student will write the theory and formulas here. You can write LaTeX equations using $...$ for inline and $$...$$ for block math. Click here to type.]">
+
+          <!-- 3. THEORY Section -->
+          <div class="report-section" data-type="text">
+            <div class="section-header-row">
+              <div class="section-title-container">
+                <span class="section-number">3. </span>
+                <span class="section-title-text" contenteditable="true">THEORY</span>
+              </div>
+              <div class="section-controls">
+                <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
+                <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
+                <button class="section-control-btn delete" title="Delete Section">&times;</button>
+              </div>
+            </div>
+            <div class="section-body">
+              <div class="writing-space theory-space" contenteditable="true" placeholder="[Leave a sufficiently large blank section. The student will write the theory and formulas here. You can write LaTeX equations using $...$ for inline and $$...$$ for block math. Click here to type.]">
 Here is your formula wrapped in LaTeX delimiters:
 $$\%\text{ Difference} = \frac{\left|X_{\text{with RC}}-X_{\text{without RC}}\right|}{\left|X_{\text{without RC}}\right|} \times 100$$
 
 Here is an inline formula:
 The threshold voltage is given by $V_{TH} = V_{T0} + \gamma(\sqrt{2\phi_f + V_{SB}} - \sqrt{2\phi_f})$.
-            </div>
-          </div>
-          <div class="section-element-bar">
-            <button class="btn-sec-add" onclick="addTableToSectionBody(this)">+ Add Table Grid</button>
-            <button class="btn-sec-add" onclick="addImageSpaceToSectionBody(this)">+ Add Image Dropzone</button>
-            <button class="btn-sec-add" onclick="addTextBlockToSectionBody(this)">+ Add Text Area</button>
-          </div>
-        </div>
-
-        <!-- 4. TABLE Section -->
-        <div class="report-section" data-type="table">
-          <div class="section-header-row">
-            <div class="section-title-container">
-              <span class="section-number">4. </span>
-              <span class="section-title-text" contenteditable="true">TABLE</span>
-            </div>
-            <div class="section-controls">
-              <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
-              <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
-              <button class="section-control-btn delete" title="Delete Section">&times;</button>
-            </div>
-          </div>
-          <div class="section-body">
-            
-            <!-- Table 4.1 -->
-            <div class="table-container">
-              <div class="table-caption" contenteditable="true">Table 4.1: CMOS Inverter Design Parameters</div>
-              <table class="lab-table" id="params-table">
-                <thead>
-                  <tr>
-                    <th style="width: 45%;">
-                      <div class="th-content-wrapper">
-                        <span contenteditable="true" class="editable-th">Parameter</span>
-                      </div>
-                    </th>
-                    <th style="width: 25%;">
-                      <div class="th-content-wrapper">
-                        <span contenteditable="true" class="editable-th">Value</span>
-                        <button class="delete-col-btn" title="Delete Column">&times;</button>
-                      </div>
-                    </th>
-                    <th style="width: 20%;">
-                      <div class="th-content-wrapper">
-                        <span contenteditable="true" class="editable-th">Unit</span>
-                        <button class="delete-col-btn" title="Delete Column">&times;</button>
-                      </div>
-                    </th>
-                    <th style="width: 10%;" class="table-actions-header"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td contenteditable="true">Technology</td>
-                    <td contenteditable="true">180</td>
-                    <td contenteditable="true">nm</td>
-                    <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
-                  </tr>
-                  <tr>
-                    <td contenteditable="true">$V_{DD}$</td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true">V</td>
-                    <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
-                  </tr>
-                  <tr>
-                    <td contenteditable="true">PMOS Width ($W_p$)</td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true">µm</td>
-                    <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
-                  </tr>
-                  <tr>
-                    <td contenteditable="true">NMOS Width ($W_n$)</td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true">µm</td>
-                    <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
-                  </tr>
-                  <tr>
-                    <td contenteditable="true">Input Rise Time ($t_r$)</td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true">ns</td>
-                    <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
-                  </tr>
-                  <tr>
-                    <td contenteditable="true">Input Fall Time ($t_f$)</td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true">ns</td>
-                    <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
-                  </tr>
-                </tbody>
-              </table>
-              
-              <div class="table-actions-row">
-                <button class="btn-add-row" data-action="add-row" data-table="params-table">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                  Add Row
-                </button>
-                <button class="btn-add-col" data-action="add-col" data-table="params-table">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                  Add Column
-                </button>
-                <button class="btn-delete-block" onclick="deleteSubBlock(this)">Delete Table</button>
               </div>
             </div>
+            <div class="section-element-bar">
+              <button class="btn-sec-add" onclick="addTableToSectionBody(this)">+ Add Table Grid</button>
+              <button class="btn-sec-add" onclick="addImageSpaceToSectionBody(this)">+ Add Image Dropzone</button>
+              <button class="btn-sec-add" onclick="addTextBlockToSectionBody(this)">+ Add Text Area</button>
+            </div>
+          </div>
 
-            <!-- Table 4.2 -->
-            <div class="table-container" style="margin-top: 10px;">
-              <div class="table-caption" contenteditable="true">Table 4.2: Simulation Results Comparison (With vs. Without RC Extraction)</div>
-              <table class="lab-table" id="comparison-table">
-                <thead>
-                  <tr>
-                    <th style="width: 40%;">
-                      <div class="th-content-wrapper">
-                        <span contenteditable="true" class="editable-th">Parameter</span>
-                      </div>
-                    </th>
-                    <th style="width: 25%;">
-                      <div class="th-content-wrapper">
-                        <span contenteditable="true" class="editable-th">Without RC</span>
-                        <button class="delete-col-btn" title="Delete Column">&times;</button>
-                      </div>
-                    </th>
-                    <th style="width: 25%;">
-                      <div class="th-content-wrapper">
-                        <span contenteditable="true" class="editable-th">With RC</span>
-                        <button class="delete-col-btn" title="Delete Column">&times;</button>
-                      </div>
-                    </th>
-                    <th style="width: 10%;" class="table-actions-header"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td contenteditable="true">$V_{TH}$</td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
-                  </tr>
-                  <tr>
-                    <td contenteditable="true">$V_{OH}$</td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
-                  </tr>
-                  <tr>
-                    <td contenteditable="true">$V_{OL}$</td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
-                  </tr>
-                  <tr>
-                    <td contenteditable="true">$V_{IH}$</td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
-                  </tr>
-                  <tr>
-                    <td contenteditable="true">$V_{IL}$</td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
-                  </tr>
-                  <tr>
-                    <td contenteditable="true">$NM_H$</td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
-                  </tr>
-                  <tr>
-                    <td contenteditable="true">$NM_L$</td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
-                  </tr>
-                  <tr>
-                    <td contenteditable="true">$t_{pHL}$</td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
-                  </tr>
-                  <tr>
-                    <td contenteditable="true">$t_{pLH}$</td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
-                  </tr>
-                  <tr>
-                    <td contenteditable="true">$t_p$</td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
-                  </tr>
-                  <tr>
-                    <td contenteditable="true">$t_r$</td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
-                  </tr>
-                  <tr>
-                    <td contenteditable="true">$t_f$</td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
-                  </tr>
-                </tbody>
-              </table>
-              
-              <div class="table-actions-row">
-                <button class="btn-add-row" data-action="add-row" data-table="comparison-table">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                  Add Row
-                </button>
-                <button class="btn-add-col" data-action="add-col" data-table="comparison-table">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                  Add Column
-                </button>
-                <button class="btn-delete-block" onclick="deleteSubBlock(this)">Delete Table</button>
+          <!-- 4. TABLE Section -->
+          <div class="report-section" data-type="table">
+            <div class="section-header-row">
+              <div class="section-title-container">
+                <span class="section-number">4. </span>
+                <span class="section-title-text" contenteditable="true">TABLE</span>
+              </div>
+              <div class="section-controls">
+                <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
+                <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
+                <button class="section-control-btn delete" title="Delete Section">&times;</button>
               </div>
             </div>
+            <div class="section-body">
+              
+              <!-- Table 4.1 -->
+              <div class="table-container">
+                <div class="table-caption" contenteditable="true">Table 4.1: CMOS Inverter Design Parameters</div>
+                <table class="lab-table" id="params-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 45%;">
+                        <div class="th-content-wrapper">
+                          <span contenteditable="true" class="editable-th">Parameter</span>
+                        </div>
+                      </th>
+                      <th style="width: 25%;">
+                        <div class="th-content-wrapper">
+                          <span contenteditable="true" class="editable-th">Value</span>
+                          <button class="delete-col-btn" title="Delete Column">&times;</button>
+                        </div>
+                      </th>
+                      <th style="width: 20%;">
+                        <div class="th-content-wrapper">
+                          <span contenteditable="true" class="editable-th">Unit</span>
+                          <button class="delete-col-btn" title="Delete Column">&times;</button>
+                        </div>
+                      </th>
+                      <th style="width: 10%;" class="table-actions-header"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td contenteditable="true">Technology</td>
+                      <td contenteditable="true">180</td>
+                      <td contenteditable="true">nm</td>
+                      <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                    </tr>
+                    <tr>
+                      <td contenteditable="true">$V_{DD}$</td>
+                      <td contenteditable="true"></td>
+                      <td contenteditable="true">V</td>
+                      <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                    </tr>
+                    <tr>
+                      <td contenteditable="true">PMOS Width ($W_p$)</td>
+                      <td contenteditable="true"></td>
+                      <td contenteditable="true">µm</td>
+                      <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                    </tr>
+                    <tr>
+                      <td contenteditable="true">NMOS Width ($W_n$)</td>
+                      <td contenteditable="true"></td>
+                      <td contenteditable="true">µm</td>
+                      <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                    </tr>
+                    <tr>
+                      <td contenteditable="true">Input Rise Time ($t_r$)</td>
+                      <td contenteditable="true"></td>
+                      <td contenteditable="true">ns</td>
+                      <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                    </tr>
+                    <tr>
+                      <td contenteditable="true">Input Fall Time ($t_f$)</td>
+                      <td contenteditable="true"></td>
+                      <td contenteditable="true">ns</td>
+                      <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+                
+                <div class="table-actions-row">
+                  <button class="btn-add-row" data-action="add-row" data-table="params-table">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    Add Row
+                  </button>
+                  <button class="btn-add-col" data-action="add-col" data-table="params-table">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    Add Column
+                  </button>
+                  <button class="btn-delete-block" onclick="deleteSubBlock(this)">Delete Table</button>
+                </div>
+              </div>
 
+              <!-- Table 4.2 -->
+              <div class="table-container" style="margin-top: 10px;">
+                <div class="table-caption" contenteditable="true">Table 4.2: Simulation Results Comparison (With vs. Without RC Extraction)</div>
+                <table class="lab-table" id="comparison-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 40%;">
+                        <div class="th-content-wrapper">
+                          <span contenteditable="true" class="editable-th">Parameter</span>
+                        </div>
+                      </th>
+                      <th style="width: 25%;">
+                        <div class="th-content-wrapper">
+                          <span contenteditable="true" class="editable-th">Without RC</span>
+                          <button class="delete-col-btn" title="Delete Column">&times;</button>
+                        </div>
+                      </th>
+                      <th style="width: 25%;">
+                        <div class="th-content-wrapper">
+                          <span contenteditable="true" class="editable-th">With RC</span>
+                          <button class="delete-col-btn" title="Delete Column">&times;</button>
+                        </div>
+                      </th>
+                      <th style="width: 10%;" class="table-actions-header"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td contenteditable="true">$V_{TH}$</td>
+                      <td contenteditable="true"></td>
+                      <td contenteditable="true"></td>
+                      <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                    </tr>
+                    <tr>
+                      <td contenteditable="true">$V_{OH}$</td>
+                      <td contenteditable="true"></td>
+                      <td contenteditable="true"></td>
+                      <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                    </tr>
+                    <tr>
+                      <td contenteditable="true">$V_{OL}$</td>
+                      <td contenteditable="true"></td>
+                      <td contenteditable="true"></td>
+                      <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                    </tr>
+                    <tr>
+                      <td contenteditable="true">$V_{IH}$</td>
+                      <td contenteditable="true"></td>
+                      <td contenteditable="true"></td>
+                      <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                    </tr>
+                    <tr>
+                      <td contenteditable="true">$V_{IL}$</td>
+                      <td contenteditable="true"></td>
+                      <td contenteditable="true"></td>
+                      <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                    </tr>
+                    <tr>
+                      <td contenteditable="true">$NM_H$</td>
+                      <td contenteditable="true"></td>
+                      <td contenteditable="true"></td>
+                      <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                    </tr>
+                    <tr>
+                      <td contenteditable="true">$NM_L$</td>
+                      <td contenteditable="true"></td>
+                      <td contenteditable="true"></td>
+                      <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                    </tr>
+                    <tr>
+                      <td contenteditable="true">$t_{pHL}$</td>
+                      <td contenteditable="true"></td>
+                      <td contenteditable="true"></td>
+                      <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                    </tr>
+                    <tr>
+                      <td contenteditable="true">$t_{pLH}$</td>
+                      <td contenteditable="true"></td>
+                      <td contenteditable="true"></td>
+                      <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                    </tr>
+                    <tr>
+                      <td contenteditable="true">$t_p$</td>
+                      <td contenteditable="true"></td>
+                      <td contenteditable="true"></td>
+                      <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                    </tr>
+                    <tr>
+                      <td contenteditable="true">$t_r$</td>
+                      <td contenteditable="true"></td>
+                      <td contenteditable="true"></td>
+                      <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                    </tr>
+                    <tr>
+                      <td contenteditable="true">$t_f$</td>
+                      <td contenteditable="true"></td>
+                      <td contenteditable="true"></td>
+                      <td class="row-actions-cell"><button class="delete-row-btn">&times;</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+                
+                <div class="table-actions-row">
+                  <button class="btn-add-row" data-action="add-row" data-table="comparison-table">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    Add Row
+                  </button>
+                  <button class="btn-add-col" data-action="add-col" data-table="comparison-table">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    Add Column
+                  </button>
+                  <button class="btn-delete-block" onclick="deleteSubBlock(this)">Delete Table</button>
+                </div>
+              </div>
+
+            </div>
+            <div class="section-element-bar">
+              <button class="btn-sec-add" onclick="addTableToSectionBody(this)">+ Add Table Grid</button>
+              <button class="btn-sec-add" onclick="addImageSpaceToSectionBody(this)">+ Add Image Dropzone</button>
+              <button class="btn-sec-add" onclick="addTextBlockToSectionBody(this)">+ Add Text Area</button>
+            </div>
           </div>
-          <div class="section-element-bar">
-            <button class="btn-sec-add" onclick="addTableToSectionBody(this)">+ Add Table Grid</button>
-            <button class="btn-sec-add" onclick="addImageSpaceToSectionBody(this)">+ Add Image Dropzone</button>
-            <button class="btn-sec-add" onclick="addTextBlockToSectionBody(this)">+ Add Text Area</button>
+
+          <!-- 5. CALCULATION Section -->
+          <div class="report-section" data-type="text">
+            <div class="section-header-row">
+              <div class="section-title-container">
+                <span class="section-number">5. </span>
+                <span class="section-title-text" contenteditable="true">CALCULATION</span>
+              </div>
+              <div class="section-controls">
+                <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
+                <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
+                <button class="section-control-btn delete" title="Delete Section">&times;</button>
+              </div>
+            </div>
+            <div class="section-body">
+              <div class="writing-space calculation-space" contenteditable="true" placeholder="[Leave a large blank section. Do not specify what each calculation is for. The student will decide what to calculate. You can write LaTeX equations here (e.g. $\tau = R \times C$). Click here to type.]"></div>
+            </div>
+            <div class="section-element-bar">
+              <button class="btn-sec-add" onclick="addTableToSectionBody(this)">+ Add Table Grid</button>
+              <button class="btn-sec-add" onclick="addImageSpaceToSectionBody(this)">+ Add Image Dropzone</button>
+              <button class="btn-sec-add" onclick="addTextBlockToSectionBody(this)">+ Add Text Area</button>
+            </div>
           </div>
+
+          <!-- 6. IMAGES Section -->
+          <div class="report-section" data-type="images">
+            <div class="section-header-row">
+              <div class="section-title-container">
+                <span class="section-number">6. </span>
+                <span class="section-title-text" contenteditable="true">IMAGES</span>
+              </div>
+              <div class="section-controls">
+                <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
+                <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
+                <button class="section-control-btn delete" title="Delete Section">&times;</button>
+              </div>
+            </div>
+            <div class="section-body">
+              <div class="writing-space images-space" id="images-dropzone" tabindex="0" placeholder="[Leave a large blank section for pasting experiment screenshots/images. Paste image (Ctrl+V) or Drag & Drop screenshot file directly here.]">
+                <div class="image-gallery" id="gallery-container"></div>
+              </div>
+            </div>
+            <div class="section-element-bar">
+              <button class="btn-sec-add" onclick="addTableToSectionBody(this)">+ Add Table Grid</button>
+              <button class="btn-sec-add" onclick="addImageSpaceToSectionBody(this)">+ Add Image Dropzone</button>
+              <button class="btn-sec-add" onclick="addTextBlockToSectionBody(this)">+ Add Text Area</button>
+            </div>
+          </div>
+
+          <!-- 7. RESULT Section -->
+          <div class="report-section" data-type="text">
+            <div class="section-header-row">
+              <div class="section-title-container">
+                <span class="section-number">7. </span>
+                <span class="section-title-text" contenteditable="true">RESULT</span>
+              </div>
+              <div class="section-controls">
+                <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
+                <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
+                <button class="section-control-btn delete" title="Delete Section">&times;</button>
+              </div>
+            </div>
+            <div class="section-body">
+              <div class="writing-space result-space" contenteditable="true" placeholder="[Leave a blank section for the result. Click here to type.]"></div>
+            </div>
+            <div class="section-element-bar">
+              <button class="btn-sec-add" onclick="addTableToSectionBody(this)">+ Add Table Grid</button>
+              <button class="btn-sec-add" onclick="addImageSpaceToSectionBody(this)">+ Add Image Dropzone</button>
+              <button class="btn-sec-add" onclick="addTextBlockToSectionBody(this)">+ Add Text Area</button>
+            </div>
+          </div>
+
+        </div> <!-- End sections-container -->
+        
+      </div> <!-- End page -->
+
+      <!-- Add Section Control Bar -->
+      <div class="add-section-bar">
+        <span style="font-weight: 600; font-size: 13px;">Add New Element to Report:</span>
+        <button class="btn-add-element" id="btn-new-text-sec">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          Text Block
+        </button>
+        <button class="btn-add-element" id="btn-new-table-sec">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line></svg>
+          Table Grid
+        </button>
+        <button class="btn-add-element" id="btn-new-images-sec">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+          Image Space
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Side Control Dashboard -->
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">VLSI IDE</div>
+        <div class="sidebar-subtitle">
+          <span>Lab Record Editor</span>
+          <span id="math-status-badge" class="status-badge">● Loading...</span>
         </div>
-
-        <!-- 5. CALCULATION Section -->
-        <div class="report-section" data-type="text">
-          <div class="section-header-row">
-            <div class="section-title-container">
-              <span class="section-number">5. </span>
-              <span class="section-title-text" contenteditable="true">CALCULATION</span>
-            </div>
-            <div class="section-controls">
-              <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
-              <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
-              <button class="section-control-btn delete" title="Delete Section">&times;</button>
-            </div>
-          </div>
-          <div class="section-body">
-            <div class="writing-space calculation-space" contenteditable="true" placeholder="[Leave a large blank section. Do not specify what each calculation is for. The student will decide what to calculate. You can write LaTeX equations here (e.g. $\tau = R \times C$). Click here to type.]"></div>
-          </div>
-          <div class="section-element-bar">
-            <button class="btn-sec-add" onclick="addTableToSectionBody(this)">+ Add Table Grid</button>
-            <button class="btn-sec-add" onclick="addImageSpaceToSectionBody(this)">+ Add Image Dropzone</button>
-            <button class="btn-sec-add" onclick="addTextBlockToSectionBody(this)">+ Add Text Area</button>
-          </div>
-        </div>
-
-        <!-- 6. IMAGES Section -->
-        <div class="report-section" data-type="images">
-          <div class="section-header-row">
-            <div class="section-title-container">
-              <span class="section-number">6. </span>
-              <span class="section-title-text" contenteditable="true">IMAGES</span>
-            </div>
-            <div class="section-controls">
-              <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
-              <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
-              <button class="section-control-btn delete" title="Delete Section">&times;</button>
-            </div>
-          </div>
-          <div class="section-body">
-            <div class="writing-space images-space" id="images-dropzone" tabindex="0" placeholder="[Leave a large blank section for pasting experiment screenshots/images. Paste image (Ctrl+V) or Drag & Drop screenshot file directly here.]">
-              <div class="image-gallery" id="gallery-container"></div>
-            </div>
-          </div>
-          <div class="section-element-bar">
-            <button class="btn-sec-add" onclick="addTableToSectionBody(this)">+ Add Table Grid</button>
-            <button class="btn-sec-add" onclick="addImageSpaceToSectionBody(this)">+ Add Image Dropzone</button>
-            <button class="btn-sec-add" onclick="addTextBlockToSectionBody(this)">+ Add Text Area</button>
-          </div>
-        </div>
-
-        <!-- 7. RESULT Section -->
-        <div class="report-section" data-type="text">
-          <div class="section-header-row">
-            <div class="section-title-container">
-              <span class="section-number">7. </span>
-              <span class="section-title-text" contenteditable="true">RESULT</span>
-            </div>
-            <div class="section-controls">
-              <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
-              <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
-              <button class="section-control-btn delete" title="Delete Section">&times;</button>
-            </div>
-          </div>
-          <div class="section-body">
-            <div class="writing-space result-space" contenteditable="true" placeholder="[Leave a blank section for the result. Click here to type.]"></div>
-          </div>
-          <div class="section-element-bar">
-            <button class="btn-sec-add" onclick="addTableToSectionBody(this)">+ Add Table Grid</button>
-            <button class="btn-sec-add" onclick="addImageSpaceToSectionBody(this)">+ Add Image Dropzone</button>
-            <button class="btn-sec-add" onclick="addTextBlockToSectionBody(this)">+ Add Text Area</button>
-          </div>
-        </div>
-
-      </div> <!-- End sections-container -->
+      </div>
       
-    </div> <!-- End page -->
+      <!-- Option Switches -->
+      <div class="sidebar-section">
+        <div class="section-label">Options</div>
+        <label class="toggle-container">
+          <input type="checkbox" id="math-toggle">
+          <span>Preview Math & Markdown</span>
+        </label>
+        <label class="toggle-container" style="margin-top: 6px;">
+          <input type="checkbox" id="ruled-toggle">
+          <span>Ruled lines for hand-writing</span>
+        </label>
+      </div>
 
-  </div>
+      <!-- Page Setup options -->
+      <div class="sidebar-section">
+        <div class="section-label">Page Setup</div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div>
+            <label style="font-size: 11px; color: var(--text-muted);">Font Style</label>
+            <select id="font-select" class="sidebar-select">
+              <option value="font-times">Times New Roman</option>
+              <option value="font-arial">Arial (Sans-Serif)</option>
+              <option value="font-georgia">Georgia</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 11px; color: var(--text-muted);">Page Margins</label>
+            <select id="margin-select" class="sidebar-select">
+              <option value="margin-standard">Standard VLSI Margins</option>
+              <option value="margin-narrow">Narrow Margins</option>
+              <option value="margin-wide">Wide Margins</option>
+            </select>
+          </div>
+        </div>
+      </div>
 
-  <!-- Add Section Control Bar (Hidden on print) -->
-  <div class="add-section-bar">
-    <span style="font-weight: 600; font-size: 13px;">Add New Element to Report:</span>
-    <button class="btn-add-element" id="btn-new-text-sec">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-      Text Block
-    </button>
-    <button class="btn-add-element" id="btn-new-table-sec">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line></svg>
-      Table Grid
-    </button>
-    <button class="btn-add-element" id="btn-new-images-sec">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-      Image Space
-    </button>
-  </div>
+      <!-- Quick insertion helpers -->
+      <div class="sidebar-section">
+        <div class="section-label">Insert LaTeX math</div>
+        <div class="helper-grid">
+          <button class="btn-helper" onclick="insertTemplateText('$\\tau = R \\\\times C$')" title="Delay formula">Delay $\tau$</button>
+          <button class="btn-helper" onclick="insertTemplateText('$$\\\\beta_n = \\\\mu_n C_{ox} \\\\frac{W}{L}$$')" title="Transconductance parameter">Beta $\beta_n$</button>
+          <button class="btn-helper" onclick="insertTemplateText('$V_{TH}$')" title="Threshold Voltage">Vth $V_{TH}$</button>
+          <button class="btn-helper" onclick="insertTemplateText('$$\\\\text{\\% Difference} = \\\\frac{\\\\left|X_{\\\\text{with RC}}-X_{\\\\text{without RC}}\\\\right|}{\\\\left|X_{\\\\text{without RC}}\\\\right|} \\\\times 100$$')" title="Percentage difference formula">% Diff</button>
+          <button class="btn-helper" onclick="insertTemplateText('\\\\frac{a}{b}')" title="Insert fraction">Fraction</button>
+          <button class="btn-helper" onclick="insertTemplateText('\\\\sqrt{x}')" title="Insert square root">Sqrt $\sqrt{}$</button>
+          <button class="btn-helper" onclick="insertTemplateText('\\\\mu_n')" title="Electron mobility symbol">Mobility $\mu_n$</button>
+          <button class="btn-helper" onclick="insertTemplateText('\\\\lambda')" title="Channel length modulation parameter">Lambda $\lambda$</button>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="section-label">Insert Markdown</div>
+        <div class="helper-grid">
+          <button class="btn-helper" onclick="insertTemplateText('**Bold**')">**Bold**</button>
+          <button class="btn-helper" onclick="insertTemplateText('*Italic*')">*Italic*</button>
+          <button class="btn-helper" onclick="insertTemplateText('__Underline__')">__Underline__</button>
+          <button class="btn-helper" onclick="insertTemplateText('- List Item')">- List</button>
+        </div>
+      </div>
+
+      <!-- Footer Workspace actions -->
+      <div class="sidebar-section" style="margin-top: auto; display: flex; flex-direction: column; gap: 8px;">
+        <button class="btn btn-secondary" id="save-file-btn" style="width: 100%; justify-content: center; background: rgba(255,255,255,0.06); color: var(--text-light);">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Save Backup File
+        </button>
+        <button class="btn btn-secondary" id="load-file-btn" style="width: 100%; justify-content: center; background: rgba(255,255,255,0.06); color: var(--text-light);">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          Load Backup File
+        </button>
+        <button class="btn btn-danger" id="clear-btn" style="width: 100%; justify-content: center;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          Clear Workspace
+        </button>
+        <button class="btn btn-primary" onclick="printDocument()" style="width: 100%; justify-content: center;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+          Print PDF
+        </button>
+      </div>
+
+    </div>
+
+  </div> <!-- End App Layout -->
 
   <script>
     // Elements Selection
     const ruledToggle = document.getElementById('ruled-toggle');
     const mathToggle = document.getElementById('math-toggle');
     const clearBtn = document.getElementById('clear-btn');
+    const fontSelect = document.getElementById('font-select');
+    const marginSelect = document.getElementById('margin-select');
+    const mainLabSheet = document.getElementById('main-lab-sheet');
     const sectionsContainer = document.getElementById('sections-container');
 
     // Local Storage Keys prefix
     const STORAGE_PREFIX = 'vlsi_lab_record_';
 
     let isMathRendered = false;
+    let lastActiveEditable = null;
 
     // Dynamically inject MathJax layout protection styles to bypass HTML caches
     function injectMathStyles() {
@@ -1306,6 +1382,8 @@ The threshold voltage is given by $V_{TH} = V_{T0} + \gamma(\sqrt{2\phi_f + V_{S
       localStorage.setItem(STORAGE_PREFIX + 'exp_num', document.getElementById('exp-num-field').innerHTML);
       localStorage.setItem(STORAGE_PREFIX + 'sections_markup', sectionsContainer.innerHTML);
       localStorage.setItem(STORAGE_PREFIX + 'ruled_state', ruledToggle.checked);
+      localStorage.setItem(STORAGE_PREFIX + 'font_choice', fontSelect.value);
+      localStorage.setItem(STORAGE_PREFIX + 'margin_choice', marginSelect.value);
     }
 
     // Load Data Function (Restores full serialized markup)
@@ -1321,6 +1399,12 @@ The threshold voltage is given by $V_{TH} = V_{T0} + \gamma(\sqrt{2\phi_f + V_{S
       const savedRuledState = localStorage.getItem(STORAGE_PREFIX + 'ruled_state') === 'true';
       ruledToggle.checked = savedRuledState;
       toggleRuledClass(savedRuledState);
+
+      const fontChoice = localStorage.getItem(STORAGE_PREFIX + 'font_choice') || 'font-times';
+      applyFontClass(fontChoice);
+
+      const marginChoice = localStorage.getItem(STORAGE_PREFIX + 'margin_choice') || 'margin-standard';
+      applyMarginClass(marginChoice);
 
       // Refresh numbering of sections and figures
       updateSectionNumbers();
@@ -1541,6 +1625,63 @@ The threshold voltage is given by $V_{TH} = V_{T0} + \gamma(\sqrt{2\phi_f + V_{S
       saveAllData();
     }
 
+    // Keep track of which contenteditable was last active for inserting formulas
+    document.addEventListener('focusin', function(e) {
+      if (e.target.contentEditable === "true") {
+        lastActiveEditable = e.target;
+      }
+    });
+
+    // Sidebar Helper: Insert formula or markdown tags directly at the user's cursor
+    function insertTemplateText(text) {
+      if (lastActiveEditable) {
+        lastActiveEditable.focus();
+        const sel = window.getSelection();
+        if (sel.getRangeAt && sel.rangeCount) {
+          const range = sel.getRangeAt(0);
+          range.deleteContents();
+          
+          const textNode = document.createTextNode(text);
+          range.insertNode(textNode);
+          
+          // Position cursor directly after inserted text
+          range.setStartAfter(textNode);
+          range.setEndAfter(textNode);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        } else {
+          lastActiveEditable.innerHTML += text;
+        }
+        saveAllData();
+      } else {
+        alert("Please click inside an editor writing block or table cell first where you want to insert the formula!");
+      }
+    }
+
+    // Dynamic Margin Setup Changer
+    marginSelect.addEventListener('change', function(e) {
+      applyMarginClass(e.target.value);
+      saveAllData();
+    });
+
+    function applyMarginClass(marginClass) {
+      mainLabSheet.classList.remove('margin-standard', 'margin-narrow', 'margin-wide');
+      mainLabSheet.classList.add(marginClass);
+      marginSelect.value = marginClass;
+    }
+
+    // Dynamic Font Setup Changer
+    fontSelect.addEventListener('change', function(e) {
+      applyFontClass(e.target.value);
+      saveAllData();
+    });
+
+    function applyFontClass(fontClass) {
+      mainLabSheet.classList.remove('font-times', 'font-arial', 'font-georgia');
+      mainLabSheet.classList.add(fontClass);
+      fontSelect.value = fontClass;
+    }
+
     // Bind all interactive and save event listeners across the document
     function bindAllEvents() {
       // 1. Re-bind section controls
@@ -1651,7 +1792,79 @@ The threshold voltage is given by $V_{TH} = V_{T0} + \gamma(\sqrt{2\phi_f + V_{S
       setTimeout(updateMathJaxStatus, 3000);
     });
 
-    // Render LaTeX Math on page
+    // Custom Parser converting Markdown styles and protecting LaTeX segments
+    function parseRichText(text) {
+      let mathBlocks = [];
+      let blockCount = 0;
+      
+      // 1. Extract block math $$ ... $$
+      let tempText = text.replace(/\$\$([\s\S]*?)\$\$/g, function(match, formula) {
+        const placeholder = `<!--MATHBLOCK_${blockCount}-->`;
+        mathBlocks.push({ placeholder, formula: `$$${formula}$$` });
+        blockCount++;
+        return placeholder;
+      });
+      
+      // 2. Extract inline math $ ... $
+      tempText = tempText.replace(/\$([\s\S]*?)\$/g, function(match, formula) {
+        const placeholder = `<!--MATHBLOCK_${blockCount}-->`;
+        mathBlocks.push({ placeholder, formula: `$${formula}$` });
+        blockCount++;
+        return placeholder;
+      });
+      
+      // 3. Escape HTML to prevent injection and compile Markdown syntax
+      let html = tempText
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      
+      // Headers: # Title, ## Sub, ### Mini
+      html = html.replace(/^### (.*?)$/gm, '<h3>$1</h3>');
+      html = html.replace(/^## (.*?)$/gm, '<h2>$1</h2>');
+      html = html.replace(/^# (.*?)$/gm, '<h1>$1</h1>');
+      
+      // Formatting tags
+      html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+      html = html.replace(/__(.*?)__/g, '<u>$1</u>');
+      html = html.replace(/`(.*?)`/g, '<code>$1</code>');
+      
+      // Bullet list items parsing
+      let lines = html.split('\n');
+      let inList = false;
+      for (let i = 0; i < lines.length; i++) {
+        let line = lines[i].trim();
+        if (line.startsWith('- ') || line.startsWith('* ')) {
+          let content = line.substring(2);
+          if (!inList) {
+            lines[i] = '<ul><li>' + content + '</li>';
+            inList = true;
+          } else {
+            lines[i] = '<li>' + content + '</li>';
+          }
+        } else {
+          if (inList) {
+            lines[i - 1] = lines[i - 1] + '</ul>';
+            inList = false;
+          }
+        }
+      }
+      if (inList) {
+        lines[lines.length - 1] = lines[lines.length - 1] + '</ul>';
+      }
+      
+      html = lines.join('<br>'); // Join lines back preserving standard linebreaks
+
+      // 4. Restore LaTeX blocks safely back into placeholders
+      mathBlocks.forEach(block => {
+        html = html.replace(block.placeholder, block.formula);
+      });
+      
+      return html;
+    }
+
+    // Render LaTeX Math & Markdown on page
     function renderMathOnPage() {
       if (isMathRendered) return Promise.resolve();
       
@@ -1673,9 +1886,9 @@ The threshold voltage is given by $V_{TH} = V_{T0} + \gamma(\sqrt{2\phi_f + V_{S
       elementsToRender.forEach(el => {
         el.setAttribute('data-raw-content', el.innerHTML);
         
-        // Convert HTML to clean plain text
+        // Compile markdown & LaTeX formulas
         const plainText = el.innerText;
-        el.textContent = plainText;
+        el.innerHTML = parseRichText(plainText);
         
         el.contentEditable = "false";
       });
@@ -1754,9 +1967,8 @@ The threshold voltage is given by $V_{TH} = V_{T0} + \gamma(\sqrt{2\phi_f + V_{S
           reader.onload = function(event) {
             // Find appropriate gallery
             let targetGallery = null;
-            const activeEl = document.activeElement;
-            if (activeEl && activeEl.classList.contains('images-space')) {
-              targetGallery = activeEl.querySelector('.image-gallery');
+            if (lastActiveEditable && lastActiveEditable.classList.contains('images-space')) {
+              targetGallery = lastActiveEditable.querySelector('.image-gallery');
             }
             if (!targetGallery) {
               targetGallery = sectionsContainer.querySelector('.image-gallery');
@@ -2041,10 +2253,12 @@ The threshold voltage is given by $V_{TH} = V_{T0} + \gamma(\sqrt{2\phi_f + V_{S
       }
       
       const backupData = {
-        version: "1.0",
+        version: "1.1",
         exp_num: document.getElementById('exp-num-field').innerHTML,
         sections_markup: sectionsContainer.innerHTML,
-        ruled_state: ruledToggle.checked
+        ruled_state: ruledToggle.checked,
+        font_choice: fontSelect.value,
+        margin_choice: marginSelect.value
       };
       
       const jsonString = JSON.stringify(backupData, null, 2);
@@ -2094,6 +2308,12 @@ The threshold voltage is given by $V_{TH} = V_{T0} + \gamma(\sqrt{2\phi_f + V_{S
             const isRuled = importedData.ruled_state === true;
             ruledToggle.checked = isRuled;
             toggleRuledClass(isRuled);
+
+            const fontChoice = importedData.font_choice || 'font-times';
+            applyFontClass(fontChoice);
+
+            const marginChoice = importedData.margin_choice || 'margin-standard';
+            applyMarginClass(marginChoice);
             
             updateSectionNumbers();
             updateImageNumbers();
