@@ -138,6 +138,8 @@ body {
 
 .header-left {
   text-align: left;
+  font-size: 10.5pt;
+  font-weight: bold;
 }
 
 .header-center {
@@ -149,7 +151,7 @@ body {
 }
 
 /* Editable Experiment Number & Date Spans */
-.editable-exp-num, .editable-date {
+.editable-exp-num {
   outline: none;
   min-width: 80px;
   display: inline-block;
@@ -157,15 +159,32 @@ body {
   padding: 0 4px;
 }
 
+.editable-date {
+  outline: none;
+  min-width: 90px;
+  display: inline-block;
+  border-bottom: 1px dashed #888;
+  padding: 0 4px;
+  font-size: 10.5pt;
+  font-weight: normal;
+}
+
 .editable-exp-num:focus, .editable-date:focus {
   background-color: #f1f5f9;
   border-bottom-color: var(--primary);
 }
 
-.editable-exp-num:empty::before, .editable-date:empty::before {
+.editable-exp-num:empty::before {
   content: "______";
   color: #000;
   font-style: normal;
+}
+
+.editable-date:empty::before {
+  content: "DD/MM/YYYY";
+  color: #888;
+  font-weight: normal;
+  font-style: italic;
 }
 
 /* Prevent Section Splitting Across Pages */

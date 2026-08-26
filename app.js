@@ -317,9 +317,17 @@ function loadAllData() {
   if (expNum !== null) document.getElementById('exp-num-field').innerHTML = expNum;
 
   const expDate = localStorage.getItem(STORAGE_PREFIX + 'exp_date');
-  if (expDate !== null) {
-    const expDateField = document.getElementById('exp-date-field');
-    if (expDateField) expDateField.innerHTML = expDate;
+  const expDateField = document.getElementById('exp-date-field');
+  if (expDateField) {
+    if (expDate !== null && expDate !== "") {
+      expDateField.innerHTML = expDate;
+    } else {
+      const today = new Date();
+      const dd = String(today.getDate()).padStart(2, '0');
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const yyyy = today.getFullYear();
+      expDateField.innerHTML = `${dd}/${mm}/${yyyy}`;
+    }
   }
 
   const startNum = localStorage.getItem(STORAGE_PREFIX + 'start_num') || '1';
