@@ -304,6 +304,10 @@ document.addEventListener('focusin', function(e) {
 
 // Sidebar Helper: Insert formula or markdown tags directly at the user's cursor
 function insertTemplateText(text) {
+  if (isMathRendered) {
+    alert("Please turn off 'Preview Math & Markdown' before inserting content.");
+    return;
+  }
   if (lastActiveEditable) {
     lastActiveEditable.focus();
     const sel = window.getSelection();
@@ -550,7 +554,7 @@ function renderMathOnPage() {
   
   // Lock editing and store raw html in a data attribute
   const elementsToRender = document.querySelectorAll(
-    '.writing-space:not(.images-space), #exp-num-field, .editable-th, .lab-table td[contenteditable="true"]'
+    '.writing-space:not(.images-space), #exp-num-field, .editable-th, .lab-table td[contenteditable="true"], .section-title-text, .table-caption, .img-caption'
   );
   
   elementsToRender.forEach(el => {
@@ -1026,6 +1030,23 @@ document.addEventListener('click', function(e) {
   if (window.innerWidth < 1200) {
     if (sidebar.classList.contains('active') && !sidebar.contains(e.target) && e.target !== sidebarToggleBtn && !sidebarToggleBtn.contains(e.target)) {
       sidebar.classList.remove('active');
+    }
+  }
+});
+
+// Prevent Enter key in single-line contenteditables (titles, headers, captions)
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    const activeEl = document.activeElement;
+    if (activeEl && (
+      activeEl.classList.contains('section-title-text') || 
+      activeEl.classList.contains('editable-th') || 
+      activeEl.id === 'exp-num-field' ||
+      activeEl.classList.contains('editable-exp-num') ||
+      activeEl.classList.contains('table-caption') ||
+      activeEl.classList.contains('img-caption')
+    )) {
+      e.preventDefault();
     }
   }
 });
