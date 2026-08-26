@@ -18,6 +18,29 @@
   padding: 0;
 }
 
+/* Prevent MathJax elements from inheriting parent pre-wrap breaks or line spacing */
+mjx-container {
+  white-space: nowrap !important;
+  display: inline-block !important;
+  line-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+mjx-container[display="true"] {
+  display: block !important;
+  text-align: center;
+  margin: 1em auto !important;
+  white-space: nowrap !important;
+}
+
+mjx-container svg {
+  display: inline-block !important;
+  vertical-align: middle !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
 body {
   background-color: var(--bg-dark);
   color: #000;
