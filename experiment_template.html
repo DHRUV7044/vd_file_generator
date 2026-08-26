@@ -63,6 +63,7 @@
       flex-grow: 1;
       height: 100vh;
       overflow-y: auto;
+      overflow-x: auto; /* Allow horizontal scrolling on narrow screens instead of clipping */
       padding: 40px 20px 80px 20px;
       display: flex;
       flex-direction: column;
@@ -737,6 +738,65 @@
       transform: translateY(-0.5px);
     }
 
+    /* Sidebar Toggle Button styling, hidden on print */
+    .sidebar-toggle-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1100;
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      color: var(--text-light);
+      padding: 8px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      transition: all 0.2s;
+    }
+
+    .sidebar-toggle-btn:hover {
+      background: rgba(99, 102, 241, 0.15);
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    /* Responsive Sidebar Layout (IDE Shell Grid) */
+    @media (min-width: 1200px) {
+      .editor-workspace {
+        padding-right: 340px; /* Leave space so A4 sheet stays perfectly centered in remaining viewport */
+      }
+      .sidebar {
+        position: fixed;
+        top: 0;
+        right: 0;
+        transform: translateX(0) !important; /* Always open on desktop */
+      }
+      .sidebar-toggle-btn {
+        display: none !important; /* No toggle button needed on large screens */
+      }
+    }
+
+    @media (max-width: 1199px) {
+      .sidebar {
+        position: fixed;
+        top: 0;
+        right: 0;
+        transform: translateX(100%); /* Hides sidebar to the right of the screen */
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: none;
+      }
+      .sidebar.active {
+        transform: translateX(0); /* Slide-in drawer animation */
+        box-shadow: -10px 0 40px rgba(0, 0, 0, 0.6);
+      }
+    }
+
     /* Print Specific Media Queries */
     @media print {
       @page {
@@ -756,7 +816,7 @@
         overflow: visible !important;
       }
 
-      .sidebar, .add-section-bar, .section-controls, .section-element-bar, .block-controls-row {
+      .sidebar, .sidebar-toggle-btn, .add-section-bar, .section-controls, .section-element-bar, .block-controls-row {
         display: none !important;
       }
 
@@ -833,6 +893,11 @@
 
   <!-- Layout Wrapper -->
   <div class="app-layout">
+    <!-- Sidebar Toggle Button (floating, visible on mobile/tablet) -->
+    <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Toggle Settings Sidebar">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      <span>Controls</span>
+    </button>
 
     <!-- Document Workspace -->
     <div class="editor-workspace">
@@ -2339,6 +2404,24 @@ The threshold voltage is given by $V_{TH} = V_{T0} + \gamma(\sqrt{2\phi_f + V_{S
           }
         });
         window.location.reload();
+      }
+    });
+
+    // Sidebar toggle and overlay dismissal handlers
+    const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
+    const sidebar = document.querySelector('.sidebar');
+
+    sidebarToggleBtn.addEventListener('click', function(e) {
+      sidebar.classList.toggle('active');
+      e.stopPropagation();
+    });
+
+    // Close sidebar drawer when clicking outside it on narrow viewports
+    document.addEventListener('click', function(e) {
+      if (window.innerWidth < 1200) {
+        if (sidebar.classList.contains('active') && !sidebar.contains(e.target) && e.target !== sidebarToggleBtn && !sidebarToggleBtn.contains(e.target)) {
+          sidebar.classList.remove('active');
+        }
       }
     });
 
