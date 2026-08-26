@@ -56,6 +56,8 @@ body {
   background: #fff;
   width: 210mm;
   min-height: 297mm;
+  height: auto; /* Force page height to expand with dynamic content additions */
+  flex-shrink: 0; /* Prevent flexbox container from shrinking A4 dimensions */
   margin-bottom: 30px;
   box-sizing: border-box;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 20px rgba(99, 102, 241, 0.05);
