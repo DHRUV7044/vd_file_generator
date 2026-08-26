@@ -140,6 +140,47 @@ function migrateAndSanitizeHTML(htmlString) {
     }
   });
 
+  // 5. Upgrade old flat report sections to have a .section-body wrapper and add-element bar
+  const reportSections = tempDiv.querySelectorAll('.report-section');
+  reportSections.forEach(sec => {
+    // Check if it already has .section-body
+    let body = sec.querySelector('.section-body');
+    if (!body) {
+      body = document.createElement('div');
+      body.className = 'section-body';
+      
+      const childNodes = Array.from(sec.childNodes);
+      childNodes.forEach(child => {
+        if (child.nodeType === Node.ELEMENT_NODE) {
+          if (child.classList.contains('section-header-row') || child.classList.contains('section-element-bar')) {
+            return;
+          }
+        }
+        body.appendChild(child);
+      });
+      
+      const header = sec.querySelector('.section-header-row');
+      if (header) {
+        sec.insertBefore(body, header.nextSibling);
+      } else {
+        sec.insertBefore(body, sec.firstChild);
+      }
+    }
+
+    // Ensure the section-element-bar is present
+    let bar = sec.querySelector('.section-element-bar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.className = 'section-element-bar';
+      bar.innerHTML = `
+        <button class="btn-sec-add" onclick="addTableToSectionBody(this)">+ Add Table Grid</button>
+        <button class="btn-sec-add" onclick="addImageSpaceToSectionBody(this)">+ Add Image Dropzone</button>
+        <button class="btn-sec-add" onclick="addTextBlockToSectionBody(this)">+ Add Text Area</button>
+      `;
+      sec.appendChild(bar);
+    }
+  });
+
   return tempDiv.innerHTML;
 }
 
@@ -766,20 +807,25 @@ function createSubTableBlockHTML() {
     <div class="sub-block-wrapper table-container">
       <div class="table-caption" contenteditable="true">Table Caption</div>
       <table class="lab-table" id="${tableId}">
+        <colgroup>
+          <col style="width: 50%;">
+          <col style="width: 40%;">
+          <col style="width: 10%;" class="table-actions-column">
+        </colgroup>
         <thead>
           <tr>
-            <th style="width: 50%;">
+            <th>
               <div class="th-content-wrapper">
                 <span contenteditable="true" class="editable-th">Parameter</span>
               </div>
             </th>
-            <th style="width: 40%;">
+            <th>
               <div class="th-content-wrapper">
                 <span contenteditable="true" class="editable-th">Value</span>
                 <button class="delete-col-btn" title="Delete Column">&times;</button>
               </div>
             </th>
-            <th style="width: 10%;" class="table-actions-header"></th>
+            <th class="table-actions-header"></th>
           </tr>
         </thead>
         <tbody>
