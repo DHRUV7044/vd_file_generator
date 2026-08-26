@@ -975,7 +975,7 @@ body {
     content: "" !important;
   }
 
-  .row-actions-cell, .table-actions-header, .table-actions-row, .delete-col-btn, .delete-image-btn {
+  .row-actions-cell, .table-actions-header, .table-actions-row, .delete-col-btn, .delete-image-btn, .table-actions-column {
     display: none !important;
   }
 }
