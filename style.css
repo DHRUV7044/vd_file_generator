@@ -269,6 +269,35 @@ body {
   border-color: #94a3b8;
 }
 
+.section-control-btn.upload-img-btn {
+  width: auto;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: bold;
+  background: #f8fafc;
+  color: var(--primary, #6366f1);
+  border-color: #cbd5e1;
+}
+
+.section-control-btn.upload-img-btn:hover {
+  background: var(--primary, #6366f1);
+  color: #ffffff;
+  border-color: var(--primary, #6366f1);
+}
+
+.btn-sec-add.btn-sec-upload {
+  background: rgba(99, 102, 241, 0.08);
+  color: var(--primary, #6366f1);
+  border: 1px dashed var(--primary, #6366f1);
+}
+
+.btn-sec-add.btn-sec-upload:hover {
+  background: var(--primary, #6366f1);
+  color: #ffffff;
+  border-style: solid;
+  transform: translateY(-1px);
+}
+
 .section-control-btn.delete {
   color: #ef4444;
   font-weight: bold;

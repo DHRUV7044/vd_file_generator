@@ -1017,6 +1017,74 @@ function bindAllEvents() {
   document.querySelectorAll('[contenteditable="true"]').forEach(el => {
     el.oninput = saveAllData;
   });
+
+  // 5. Ensure all sections on screen have Upload buttons
+  ensureUploadButtonsOnAllSections();
+}
+
+// Active DOM Upgrader to guarantee upload buttons exist on all sections
+function ensureUploadButtonsOnAllSections() {
+  const sections = document.querySelectorAll('.report-section');
+  sections.forEach(sec => {
+    // 1. Ensure section-element-bar has + Upload Image
+    let bar = sec.querySelector('.section-element-bar');
+    if (bar && !bar.querySelector('.btn-sec-upload')) {
+      const uploadBtn = document.createElement('button');
+      uploadBtn.className = 'btn-sec-add btn-sec-upload';
+      uploadBtn.setAttribute('onclick', 'triggerImageFileUpload(this)');
+      uploadBtn.innerHTML = '📁 + Upload Image';
+      bar.appendChild(uploadBtn);
+    }
+
+    // 2. Ensure section-controls header has 📷 Upload
+    let controls = sec.querySelector('.section-controls');
+    if (controls && !controls.querySelector('.upload-img-btn')) {
+      const headerUploadBtn = document.createElement('button');
+      headerUploadBtn.className = 'section-control-btn upload-img-btn';
+      headerUploadBtn.title = 'Upload Image to Section';
+      headerUploadBtn.setAttribute('onclick', 'triggerImageFileUpload(this)');
+      headerUploadBtn.innerHTML = '📷 Upload';
+      const delBtn = controls.querySelector('.delete');
+      if (delBtn) {
+        controls.insertBefore(headerUploadBtn, delBtn);
+      } else {
+        controls.appendChild(headerUploadBtn);
+      }
+    }
+
+    // 3. Ensure image wrappers inside section have action bar and prompt card
+    const imageSpaces = sec.querySelectorAll('.images-space');
+    imageSpaces.forEach(space => {
+      let prompt = space.querySelector('.empty-dropzone-prompt');
+      if (!prompt) {
+        prompt = document.createElement('div');
+        prompt.className = 'empty-dropzone-prompt';
+        prompt.setAttribute('onclick', 'triggerImageFileUpload(this)');
+        prompt.innerHTML = `
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          <span>Click to Upload Image(s) or Drag & Drop / Paste (Ctrl+V)</span>
+        `;
+        space.appendChild(prompt);
+      }
+    });
+
+    const imageWrappers = sec.querySelectorAll('.images-space-wrapper');
+    imageWrappers.forEach(wrapper => {
+      let actionContainer = wrapper.querySelector('.image-section-action-bar');
+      if (!actionContainer) {
+        actionContainer = document.createElement('div');
+        actionContainer.className = 'image-section-action-bar';
+        actionContainer.innerHTML = `
+          <input type="file" class="hidden-file-input" accept="image/*" multiple style="display: none;" onchange="handleImageFileUpload(this)">
+          <button class="btn-upload-more-img" onclick="triggerImageFileUpload(this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            + Upload / Add More Images
+          </button>
+        `;
+        wrapper.appendChild(actionContainer);
+      }
+    });
+  });
 }
 
 // LaTeX Status Diagnostic Badge Handler
