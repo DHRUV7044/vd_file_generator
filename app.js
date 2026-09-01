@@ -339,6 +339,36 @@ function migrateAndSanitizeHTML(htmlString) {
     }
   });
 
+  // 7. Ensure images-space-wrapper has Upload Image button
+  const imageWrappers = tempDiv.querySelectorAll('.images-space-wrapper');
+  imageWrappers.forEach(wrapper => {
+    let row = wrapper.querySelector('.block-controls-row');
+    if (!row) {
+      row = document.createElement('div');
+      row.className = 'block-controls-row';
+      wrapper.appendChild(row);
+    }
+    if (!row.querySelector('.btn-upload-img')) {
+      const btn = document.createElement('button');
+      btn.className = 'btn-upload-img';
+      btn.setAttribute('onclick', 'triggerImageFileUpload(this)');
+      btn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+        Upload Image(s)
+      `;
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.className = 'hidden-file-input';
+      input.accept = 'image/*';
+      input.multiple = true;
+      input.style.display = 'none';
+      input.setAttribute('onchange', 'handleImageFileUpload(this)');
+
+      row.insertBefore(btn, row.firstChild);
+      row.insertBefore(input, row.firstChild);
+    }
+  });
+
   return tempDiv.innerHTML;
 }
 
@@ -718,6 +748,48 @@ document.addEventListener('click', function(e) {
     document.querySelectorAll('.image-container').forEach(c => c.classList.remove('is-selected'));
   }
 });
+
+// Image File Picker Upload Helpers
+function triggerImageFileUpload(btn) {
+  if (isMathRendered) return;
+  const wrapper = btn.closest('.images-space-wrapper') || btn.closest('.section-body') || btn.closest('.report-section');
+  if (!wrapper) return;
+  let input = wrapper.querySelector('.hidden-file-input');
+  if (!input) {
+    input = document.createElement('input');
+    input.type = 'file';
+    input.className = 'hidden-file-input';
+    input.accept = 'image/*';
+    input.multiple = true;
+    input.style.display = 'none';
+    input.onchange = function() { handleImageFileUpload(input); };
+    wrapper.appendChild(input);
+  }
+  input.click();
+}
+
+function handleImageFileUpload(input) {
+  const files = input.files;
+  if (!files || !files.length) return;
+
+  const wrapper = input.closest('.images-space-wrapper') || input.closest('.section-body') || input.closest('.report-section');
+  const gallery = wrapper ? wrapper.querySelector('.image-gallery') : null;
+  if (!gallery) return;
+
+  saveHistoryState();
+
+  Array.from(files).forEach(file => {
+    if (file.type.indexOf('image') === 0) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        addImageToGallery(gallery, e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  input.value = '';
+}
 
 // MS Word-style Click, Hold & Move (Drag and Drop Reordering)
 let draggedContainer = null;
@@ -1208,10 +1280,15 @@ function createSubImagesBlockHTML() {
   const galleryId = `gallery-${Date.now()}`;
   return `
     <div class="sub-block-wrapper images-space-wrapper">
-      <div class="writing-space images-space" id="${dropzoneId}" tabindex="0" placeholder="[Paste image (Ctrl+V) or Drag & Drop screenshot here.]">
+      <div class="writing-space images-space" id="${dropzoneId}" tabindex="0" placeholder="[Paste image (Ctrl+V), Drag & Drop, or click Upload Image button below.]">
         <div class="image-gallery" id="${galleryId}"></div>
       </div>
       <div class="block-controls-row">
+        <input type="file" class="hidden-file-input" accept="image/*" multiple style="display: none;" onchange="handleImageFileUpload(this)">
+        <button class="btn-upload-img" onclick="triggerImageFileUpload(this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+          Upload Image(s)
+        </button>
         <button class="btn-delete-block" onclick="deleteSubBlock(this)">Delete Image Space</button>
       </div>
     </div>
