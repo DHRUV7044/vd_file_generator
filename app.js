@@ -308,26 +308,34 @@ function migrateAndSanitizeHTML(htmlString) {
     }
   });
 
-  // 6. Clean up old gallery layout bars and upgrade image containers for corner-resize & drag-and-drop
-  const oldControls = tempDiv.querySelectorAll('.gallery-controls-bar, .image-toolbar');
+  // 6. Clean up old toolbars and upgrade image containers with 4 corner handles & floating contextual menu
+  const oldControls = tempDiv.querySelectorAll('.gallery-controls-bar, .image-toolbar, .delete-image-btn, .resize-handle-se');
   oldControls.forEach(el => el.remove());
 
   const imgContainers = tempDiv.querySelectorAll('.image-container');
   imgContainers.forEach(container => {
-    let handle = container.querySelector('.resize-handle-se');
-    if (!handle) {
-      handle = document.createElement('div');
-      handle.className = 'resize-handle-se';
-      handle.title = 'Drag to resize image width';
-      container.appendChild(handle);
-    }
-    let del = container.querySelector('.delete-image-btn');
-    if (!del) {
-      del = document.createElement('button');
-      del.className = 'delete-image-btn';
-      del.title = 'Delete Image';
-      del.innerHTML = '&times;';
-      container.insertBefore(del, container.firstChild);
+    // Ensure all 4 corner handles exist
+    ['nw', 'ne', 'sw', 'se'].forEach(dir => {
+      if (!container.querySelector(`.resize-handle-${dir}`)) {
+        const h = document.createElement('div');
+        h.className = `resize-handle resize-handle-${dir}`;
+        h.setAttribute('data-handle', dir);
+        container.appendChild(h);
+      }
+    });
+
+    // Ensure floating contextual bar exists
+    if (!container.querySelector('.image-floating-bar')) {
+      const floatBar = document.createElement('div');
+      floatBar.className = 'image-floating-bar';
+      floatBar.innerHTML = `
+        <button class="img-bar-btn" onclick="setImageSize(this, '50%')">50%</button>
+        <button class="img-bar-btn" onclick="setImageSize(this, '75%')">75%</button>
+        <button class="img-bar-btn" onclick="setImageSize(this, '100%')">100%</button>
+        <div class="img-bar-divider"></div>
+        <button class="img-bar-btn danger" onclick="deleteImageContainer(this)">🗑 Delete</button>
+      `;
+      container.appendChild(floatBar);
     }
   });
 
@@ -578,11 +586,6 @@ function addImageToGallery(galleryElement, base64Data) {
   imgContainer.className = 'image-container';
   imgContainer.style.width = '100%';
 
-  const deleteBtn = document.createElement('button');
-  deleteBtn.innerHTML = '&times;';
-  deleteBtn.className = 'delete-image-btn';
-  deleteBtn.title = 'Delete Image';
-
   const titleWrapper = document.createElement('div');
   titleWrapper.className = 'image-title-wrapper';
 
@@ -602,14 +605,29 @@ function addImageToGallery(galleryElement, base64Data) {
   img.src = base64Data;
   img.className = 'pasted-image';
 
-  const resizeHandle = document.createElement('div');
-  resizeHandle.className = 'resize-handle-se';
-  resizeHandle.title = 'Drag to resize image width';
-
-  imgContainer.appendChild(deleteBtn);
   imgContainer.appendChild(titleWrapper);
   imgContainer.appendChild(img);
-  imgContainer.appendChild(resizeHandle);
+
+  // Append 4 Corner Handles
+  ['nw', 'ne', 'sw', 'se'].forEach(dir => {
+    const h = document.createElement('div');
+    h.className = `resize-handle resize-handle-${dir}`;
+    h.setAttribute('data-handle', dir);
+    imgContainer.appendChild(h);
+  });
+
+  // Append Floating Contextual Toolbar
+  const floatBar = document.createElement('div');
+  floatBar.className = 'image-floating-bar';
+  floatBar.innerHTML = `
+    <button class="img-bar-btn" onclick="setImageSize(this, '50%')">50%</button>
+    <button class="img-bar-btn" onclick="setImageSize(this, '75%')">75%</button>
+    <button class="img-bar-btn" onclick="setImageSize(this, '100%')">100%</button>
+    <div class="img-bar-divider"></div>
+    <button class="img-bar-btn danger" onclick="deleteImageContainer(this)">🗑 Delete</button>
+  `;
+  imgContainer.appendChild(floatBar);
+
   galleryElement.appendChild(imgContainer);
 
   bindImageContainerEvents(imgContainer);
@@ -620,68 +638,86 @@ function addImageToGallery(galleryElement, base64Data) {
 function bindImageContainerEvents(container) {
   makeImageResizable(container);
   makeImageDraggable(container);
-
-  const deleteBtn = container.querySelector('.delete-image-btn');
-  if (deleteBtn) {
-    deleteBtn.onclick = function() {
-      if (isMathRendered) return;
-      saveHistoryState();
-      container.remove();
-      updateImageNumbers();
-      saveAllData();
-    };
-  }
 }
 
-// MS Word-style Corner Drag-to-Resize Handler
+// Proportional Corner Drag-to-Resize Handler (Google Docs / MS Word Style)
 function makeImageResizable(container) {
-  const handle = container.querySelector('.resize-handle-se');
-  if (!handle) return;
+  const handles = container.querySelectorAll('.resize-handle');
+  handles.forEach(handle => {
+    handle.onmousedown = function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (isMathRendered) return;
 
-  let isResizing = false;
-  let startX = 0;
-  let startWidth = 0;
-  let galleryWidth = 0;
+      let isResizing = true;
+      const startX = e.clientX;
+      const startWidth = container.offsetWidth;
+      const gallery = container.parentElement;
+      const galleryWidth = gallery ? gallery.offsetWidth : 600;
+      const dir = handle.getAttribute('data-handle');
 
-  handle.onmousedown = function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (isMathRendered) return;
+      saveHistoryState();
 
-    isResizing = true;
-    startX = e.clientX;
-    startWidth = container.offsetWidth;
-    const gallery = container.parentElement;
-    galleryWidth = gallery ? gallery.offsetWidth : 600;
+      function onMouseMove(me) {
+        if (!isResizing) return;
+        let dx = me.clientX - startX;
+        if (dir === 'nw' || dir === 'sw') {
+          dx = -dx;
+        }
+        let newWidthPx = startWidth + dx;
+        const minWidthPx = 120;
+        if (newWidthPx < minWidthPx) newWidthPx = minWidthPx;
+        if (newWidthPx > galleryWidth) newWidthPx = galleryWidth;
 
+        const widthPercent = Math.round((newWidthPx / galleryWidth) * 100);
+        container.style.width = widthPercent + '%';
+      }
+
+      function onMouseUp() {
+        if (!isResizing) return;
+        isResizing = false;
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        saveAllData();
+      }
+
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    };
+  });
+}
+
+function setImageSize(btn, sizeVal) {
+  if (isMathRendered) return;
+  const container = btn.closest('.image-container');
+  if (container) {
     saveHistoryState();
-    document.body.style.cursor = 'se-resize';
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-  };
-
-  function onMouseMove(e) {
-    if (!isResizing) return;
-    const dx = e.clientX - startX;
-    let newWidthPx = startWidth + dx;
-    
-    const minWidthPx = 120;
-    if (newWidthPx < minWidthPx) newWidthPx = minWidthPx;
-    if (newWidthPx > galleryWidth) newWidthPx = galleryWidth;
-
-    const widthPercent = Math.round((newWidthPx / galleryWidth) * 100);
-    container.style.width = widthPercent + '%';
-  }
-
-  function onMouseUp(e) {
-    if (!isResizing) return;
-    isResizing = false;
-    document.body.style.cursor = '';
-    document.removeEventListener('mousemove', onMouseMove);
-    document.removeEventListener('mouseup', onMouseUp);
+    container.style.width = sizeVal;
     saveAllData();
   }
 }
+
+function deleteImageContainer(btn) {
+  if (isMathRendered) return;
+  const container = btn.closest('.image-container');
+  if (container) {
+    saveHistoryState();
+    container.remove();
+    updateImageNumbers();
+    saveAllData();
+  }
+}
+
+// Contextual Selection Event Listener (Select image on click & deselect outside)
+document.addEventListener('click', function(e) {
+  const clickedContainer = e.target.closest('.image-container');
+  if (clickedContainer) {
+    document.querySelectorAll('.image-container').forEach(c => c.classList.remove('is-selected'));
+    clickedContainer.classList.add('is-selected');
+  } else if (!e.target.closest('.image-floating-bar')) {
+    document.querySelectorAll('.image-container').forEach(c => c.classList.remove('is-selected'));
+  }
+});
 
 // MS Word-style Click, Hold & Move (Drag and Drop Reordering)
 let draggedContainer = null;
