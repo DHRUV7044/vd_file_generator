@@ -1022,41 +1022,78 @@ function bindAllEvents() {
   ensureUploadButtonsOnAllSections();
 }
 
-// Active DOM Upgrader: Restricts Upload buttons strictly to Image spaces & Image sections
+// Active DOM Upgrader: Attaches Upload buttons strictly to Image Sections & Image spaces
 function ensureUploadButtonsOnAllSections() {
-  // 1. Remove upload buttons from section headers and section-element-bars
-  document.querySelectorAll('.section-control-btn.upload-img-btn, .btn-sec-add.btn-sec-upload').forEach(el => el.remove());
+  // 1. Remove element-bar upload buttons from all section bars
+  document.querySelectorAll('.btn-sec-add.btn-sec-upload').forEach(el => el.remove());
 
-  // 2. Ensure ONLY image space wrappers have the Upload Image button bar & empty prompt card
-  const imageWrappers = document.querySelectorAll('.images-space-wrapper');
-  imageWrappers.forEach(wrapper => {
-    const space = wrapper.querySelector('.images-space');
-    if (space) {
-      let prompt = space.querySelector('.empty-dropzone-prompt');
-      if (!prompt) {
-        prompt = document.createElement('div');
-        prompt.className = 'empty-dropzone-prompt';
-        prompt.setAttribute('onclick', 'triggerImageFileUpload(this)');
-        prompt.innerHTML = `
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-          <span>Click to Upload Image(s) or Drag & Drop / Paste (Ctrl+V)</span>
-        `;
-        space.appendChild(prompt);
-      }
+  // 2. Scan every image space across all sections
+  const imageSpaces = document.querySelectorAll('.images-space');
+  imageSpaces.forEach(space => {
+    // Ensure empty prompt card exists
+    let prompt = space.querySelector('.empty-dropzone-prompt');
+    if (!prompt) {
+      prompt = document.createElement('div');
+      prompt.className = 'empty-dropzone-prompt';
+      prompt.setAttribute('onclick', 'triggerImageFileUpload(this)');
+      prompt.innerHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        <span>Click to Upload Image(s) or Drag & Drop / Paste (Ctrl+V)</span>
+      `;
+      space.appendChild(prompt);
     }
 
-    let actionContainer = wrapper.querySelector('.image-section-action-bar');
-    if (!actionContainer) {
-      actionContainer = document.createElement('div');
-      actionContainer.className = 'image-section-action-bar';
-      actionContainer.innerHTML = `
-        <input type="file" class="hidden-file-input" accept="image/*" multiple style="display: none;" onchange="handleImageFileUpload(this)">
-        <button class="btn-upload-more-img" onclick="triggerImageFileUpload(this)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-          + Upload / Add Image(s)
-        </button>
-      `;
-      wrapper.appendChild(actionContainer);
+    // Ensure action bar button (+ Upload / Add Image(s)) exists right below the image space
+    const parentContainer = space.closest('.images-space-wrapper') || space.parentElement;
+    if (parentContainer) {
+      let actionContainer = parentContainer.querySelector('.image-section-action-bar');
+      if (!actionContainer) {
+        actionContainer = document.createElement('div');
+        actionContainer.className = 'image-section-action-bar';
+        actionContainer.innerHTML = `
+          <input type="file" class="hidden-file-input" accept="image/*" multiple style="display: none;" onchange="handleImageFileUpload(this)">
+          <button class="btn-upload-more-img" onclick="triggerImageFileUpload(this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            + Upload / Add Image(s)
+          </button>
+        `;
+        if (space.nextSibling) {
+          parentContainer.insertBefore(actionContainer, space.nextSibling);
+        } else {
+          parentContainer.appendChild(actionContainer);
+        }
+      }
+    }
+  });
+
+  // 3. For Image Sections, ensure header controls include 📷 Upload Image button, and remove from non-image section headers
+  const sections = document.querySelectorAll('.report-section');
+  sections.forEach(sec => {
+    const titleText = sec.querySelector('.section-title-text');
+    const hasImageSpace = sec.querySelector('.images-space');
+    const titleString = titleText ? titleText.textContent.toUpperCase() : '';
+    const isImageSec = (hasImageSpace || titleString.includes('IMAGE') || titleString.includes('SIMULATION') || titleString.includes('SCREENSHOT'));
+
+    let controls = sec.querySelector('.section-controls');
+    if (controls) {
+      let headerUploadBtn = controls.querySelector('.upload-img-btn');
+      if (isImageSec) {
+        if (!headerUploadBtn) {
+          headerUploadBtn = document.createElement('button');
+          headerUploadBtn.className = 'section-control-btn upload-img-btn';
+          headerUploadBtn.title = 'Upload Image to Section';
+          headerUploadBtn.setAttribute('onclick', 'triggerImageFileUpload(this)');
+          headerUploadBtn.innerHTML = '📷 Upload Image';
+          const delBtn = controls.querySelector('.delete');
+          if (delBtn) {
+            controls.insertBefore(headerUploadBtn, delBtn);
+          } else {
+            controls.appendChild(headerUploadBtn);
+          }
+        }
+      } else {
+        if (headerUploadBtn) headerUploadBtn.remove();
+      }
     }
   });
 }
