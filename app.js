@@ -339,33 +339,26 @@ function migrateAndSanitizeHTML(htmlString) {
     }
   });
 
-  // 7. Ensure images-space-wrapper has Upload Image button
+  // 7. Ensure images-space-wrapper has Upload / Add More Images button bar
   const imageWrappers = tempDiv.querySelectorAll('.images-space-wrapper');
   imageWrappers.forEach(wrapper => {
-    let row = wrapper.querySelector('.block-controls-row');
-    if (!row) {
-      row = document.createElement('div');
-      row.className = 'block-controls-row';
-      wrapper.appendChild(row);
-    }
-    if (!row.querySelector('.btn-upload-img')) {
-      const btn = document.createElement('button');
-      btn.className = 'btn-upload-img';
-      btn.setAttribute('onclick', 'triggerImageFileUpload(this)');
-      btn.innerHTML = `
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-        Upload Image(s)
+    let bar = wrapper.querySelector('.image-section-action-bar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.className = 'image-section-action-bar';
+      bar.innerHTML = `
+        <input type="file" class="hidden-file-input" accept="image/*" multiple style="display: none;" onchange="handleImageFileUpload(this)">
+        <button class="btn-upload-more-img" onclick="triggerImageFileUpload(this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+          + Upload / Add More Images
+        </button>
       `;
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.className = 'hidden-file-input';
-      input.accept = 'image/*';
-      input.multiple = true;
-      input.style.display = 'none';
-      input.setAttribute('onchange', 'handleImageFileUpload(this)');
-
-      row.insertBefore(btn, row.firstChild);
-      row.insertBefore(input, row.firstChild);
+      const space = wrapper.querySelector('.images-space');
+      if (space) {
+        space.after(bar);
+      } else {
+        wrapper.insertBefore(bar, wrapper.firstChild);
+      }
     }
   });
 
@@ -1309,12 +1302,14 @@ function createSubImagesBlockHTML() {
           <span>Click to Upload Image(s) or Drag & Drop / Paste (Ctrl+V)</span>
         </div>
       </div>
-      <div class="block-controls-row">
+      <div class="image-section-action-bar">
         <input type="file" class="hidden-file-input" accept="image/*" multiple style="display: none;" onchange="handleImageFileUpload(this)">
-        <button class="btn-upload-img" onclick="triggerImageFileUpload(this)">
+        <button class="btn-upload-more-img" onclick="triggerImageFileUpload(this)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-          Upload Image(s)
+          + Upload / Add More Images
         </button>
+      </div>
+      <div class="block-controls-row">
         <button class="btn-delete-block" onclick="deleteSubBlock(this)">Delete Image Space</button>
       </div>
     </div>
