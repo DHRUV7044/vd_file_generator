@@ -369,6 +369,28 @@ function migrateAndSanitizeHTML(htmlString) {
     }
   });
 
+  // 8. Ensure images-space has empty-dropzone-prompt
+  const imagesSpaces = tempDiv.querySelectorAll('.images-space');
+  imagesSpaces.forEach(space => {
+    let gallery = space.querySelector('.image-gallery');
+    if (!gallery) {
+      gallery = document.createElement('div');
+      gallery.className = 'image-gallery';
+      space.appendChild(gallery);
+    }
+    let prompt = space.querySelector('.empty-dropzone-prompt');
+    if (!prompt) {
+      prompt = document.createElement('div');
+      prompt.className = 'empty-dropzone-prompt';
+      prompt.setAttribute('onclick', 'triggerImageFileUpload(this)');
+      prompt.innerHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        <span>Click to Upload Image(s) or Drag & Drop / Paste (Ctrl+V)</span>
+      `;
+      space.appendChild(prompt);
+    }
+  });
+
   return tempDiv.innerHTML;
 }
 
@@ -1280,8 +1302,12 @@ function createSubImagesBlockHTML() {
   const galleryId = `gallery-${Date.now()}`;
   return `
     <div class="sub-block-wrapper images-space-wrapper">
-      <div class="writing-space images-space" id="${dropzoneId}" tabindex="0" placeholder="[Paste image (Ctrl+V), Drag & Drop, or click Upload Image button below.]">
+      <div class="writing-space images-space" id="${dropzoneId}" tabindex="0">
         <div class="image-gallery" id="${galleryId}"></div>
+        <div class="empty-dropzone-prompt" onclick="triggerImageFileUpload(this)">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          <span>Click to Upload Image(s) or Drag & Drop / Paste (Ctrl+V)</span>
+        </div>
       </div>
       <div class="block-controls-row">
         <input type="file" class="hidden-file-input" accept="image/*" multiple style="display: none;" onchange="handleImageFileUpload(this)">

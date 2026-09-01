@@ -588,6 +588,50 @@ body {
   box-shadow: 0 4px 12px var(--primary-glow);
 }
 
+/* Empty Image Dropzone Interactive Prompt Card */
+.empty-dropzone-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px 16px;
+  margin: 12px auto;
+  width: 90%;
+  max-width: 480px;
+  border: 2px dashed #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.empty-dropzone-prompt:hover {
+  border-color: var(--primary, #6366f1);
+  background: rgba(99, 102, 241, 0.05);
+  color: var(--primary, #6366f1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+}
+
+.empty-dropzone-prompt svg {
+  color: #64748b;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.empty-dropzone-prompt:hover svg {
+  color: var(--primary, #6366f1);
+  transform: translateY(-2px);
+}
+
+/* Hide empty prompt when images exist */
+.image-gallery:not(:empty) + .empty-dropzone-prompt {
+  display: none !important;
+}
+
 /* Pasted/Dropped CAD Screenshots & Gallery styling */
 .image-gallery {
   display: flex;
