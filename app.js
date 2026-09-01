@@ -308,47 +308,26 @@ function migrateAndSanitizeHTML(htmlString) {
     }
   });
 
-  // 6. Upgrade old images-space-wrapper and image-containers
-  const imageWrappers = tempDiv.querySelectorAll('.images-space-wrapper');
-  imageWrappers.forEach(wrapper => {
-    let bar = wrapper.querySelector('.gallery-controls-bar');
-    if (!bar) {
-      bar = document.createElement('div');
-      bar.className = 'gallery-controls-bar';
-      bar.innerHTML = `
-        <span class="gallery-controls-label">Gallery Layout:</span>
-        <button class="btn-gallery-layout active" data-layout="layout-stacked" onclick="setGalleryLayout(this, 'layout-stacked')">Stacked (1 Col)</button>
-        <button class="btn-gallery-layout" data-layout="layout-grid-2" onclick="setGalleryLayout(this, 'layout-grid-2')">2 Columns</button>
-        <button class="btn-gallery-layout" data-layout="layout-grid-3" onclick="setGalleryLayout(this, 'layout-grid-3')">3 Columns</button>
-      `;
-      wrapper.insertBefore(bar, wrapper.firstChild);
-    }
-  });
+  // 6. Clean up old gallery layout bars and upgrade image containers for corner-resize & drag-and-drop
+  const oldControls = tempDiv.querySelectorAll('.gallery-controls-bar, .image-toolbar');
+  oldControls.forEach(el => el.remove());
 
   const imgContainers = tempDiv.querySelectorAll('.image-container');
   imgContainers.forEach(container => {
-    let toolbar = container.querySelector('.image-toolbar');
-    if (!toolbar) {
-      toolbar = document.createElement('div');
-      toolbar.className = 'image-toolbar';
-      toolbar.innerHTML = `
-        <div class="img-tool-group">
-          <span class="img-tool-label">Order:</span>
-          <button class="img-btn img-move-left" title="Move Left / Up">←</button>
-          <button class="img-btn img-move-right" title="Move Right / Down">→</button>
-        </div>
-        <div class="img-tool-group">
-          <span class="img-tool-label">Size:</span>
-          <button class="img-btn img-size-btn" data-size="33%">33%</button>
-          <button class="img-btn img-size-btn" data-size="50%">50%</button>
-          <button class="img-btn img-size-btn" data-size="75%">75%</button>
-          <button class="img-btn img-size-btn active" data-size="100%">100%</button>
-        </div>
-        <div class="img-tool-group">
-          <button class="img-btn delete-image-btn" title="Delete Image">&times;</button>
-        </div>
-      `;
-      container.insertBefore(toolbar, container.firstChild);
+    let handle = container.querySelector('.resize-handle-se');
+    if (!handle) {
+      handle = document.createElement('div');
+      handle.className = 'resize-handle-se';
+      handle.title = 'Drag to resize image width';
+      container.appendChild(handle);
+    }
+    let del = container.querySelector('.delete-image-btn');
+    if (!del) {
+      del = document.createElement('button');
+      del.className = 'delete-image-btn';
+      del.title = 'Delete Image';
+      del.innerHTML = '&times;';
+      container.insertBefore(del, container.firstChild);
     }
   });
 
@@ -599,25 +578,10 @@ function addImageToGallery(galleryElement, base64Data) {
   imgContainer.className = 'image-container';
   imgContainer.style.width = '100%';
 
-  const toolbar = document.createElement('div');
-  toolbar.className = 'image-toolbar';
-  toolbar.innerHTML = `
-    <div class="img-tool-group">
-      <span class="img-tool-label">Order:</span>
-      <button class="img-btn img-move-left" title="Move Left / Up">←</button>
-      <button class="img-btn img-move-right" title="Move Right / Down">→</button>
-    </div>
-    <div class="img-tool-group">
-      <span class="img-tool-label">Size:</span>
-      <button class="img-btn img-size-btn" data-size="33%">33%</button>
-      <button class="img-btn img-size-btn" data-size="50%">50%</button>
-      <button class="img-btn img-size-btn" data-size="75%">75%</button>
-      <button class="img-btn img-size-btn active" data-size="100%">100%</button>
-    </div>
-    <div class="img-tool-group">
-      <button class="img-btn delete-image-btn" title="Delete Image">&times;</button>
-    </div>
-  `;
+  const deleteBtn = document.createElement('button');
+  deleteBtn.innerHTML = '&times;';
+  deleteBtn.className = 'delete-image-btn';
+  deleteBtn.title = 'Delete Image';
 
   const titleWrapper = document.createElement('div');
   titleWrapper.className = 'image-title-wrapper';
@@ -638,9 +602,14 @@ function addImageToGallery(galleryElement, base64Data) {
   img.src = base64Data;
   img.className = 'pasted-image';
 
-  imgContainer.appendChild(toolbar);
+  const resizeHandle = document.createElement('div');
+  resizeHandle.className = 'resize-handle-se';
+  resizeHandle.title = 'Drag to resize image width';
+
+  imgContainer.appendChild(deleteBtn);
   imgContainer.appendChild(titleWrapper);
   imgContainer.appendChild(img);
+  imgContainer.appendChild(resizeHandle);
   galleryElement.appendChild(imgContainer);
 
   bindImageContainerEvents(imgContainer);
@@ -649,46 +618,8 @@ function addImageToGallery(galleryElement, base64Data) {
 }
 
 function bindImageContainerEvents(container) {
-  const leftBtn = container.querySelector('.img-move-left');
-  if (leftBtn) {
-    leftBtn.onclick = function() {
-      if (isMathRendered) return;
-      const prev = container.previousElementSibling;
-      if (prev && prev.classList.contains('image-container')) {
-        saveHistoryState();
-        container.parentElement.insertBefore(container, prev);
-        updateImageNumbers();
-        saveAllData();
-      }
-    };
-  }
-
-  const rightBtn = container.querySelector('.img-move-right');
-  if (rightBtn) {
-    rightBtn.onclick = function() {
-      if (isMathRendered) return;
-      const next = container.nextElementSibling;
-      if (next && next.classList.contains('image-container')) {
-        saveHistoryState();
-        container.parentElement.insertBefore(container, next.nextElementSibling);
-        updateImageNumbers();
-        saveAllData();
-      }
-    };
-  }
-
-  const sizeBtns = container.querySelectorAll('.img-size-btn');
-  sizeBtns.forEach(btn => {
-    btn.onclick = function() {
-      if (isMathRendered) return;
-      saveHistoryState();
-      const targetSize = btn.getAttribute('data-size');
-      container.style.width = targetSize;
-      sizeBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      saveAllData();
-    };
-  });
+  makeImageResizable(container);
+  makeImageDraggable(container);
 
   const deleteBtn = container.querySelector('.delete-image-btn');
   if (deleteBtn) {
@@ -702,21 +633,119 @@ function bindImageContainerEvents(container) {
   }
 }
 
-function setGalleryLayout(btn, layoutClass) {
-  if (isMathRendered) return;
-  saveHistoryState();
-  const wrapper = btn.closest('.images-space-wrapper');
-  const gallery = wrapper ? wrapper.querySelector('.image-gallery') : null;
-  if (gallery) {
-    gallery.classList.remove('layout-stacked', 'layout-grid-2', 'layout-grid-3');
-    gallery.classList.add(layoutClass);
+// MS Word-style Corner Drag-to-Resize Handler
+function makeImageResizable(container) {
+  const handle = container.querySelector('.resize-handle-se');
+  if (!handle) return;
+
+  let isResizing = false;
+  let startX = 0;
+  let startWidth = 0;
+  let galleryWidth = 0;
+
+  handle.onmousedown = function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isMathRendered) return;
+
+    isResizing = true;
+    startX = e.clientX;
+    startWidth = container.offsetWidth;
+    const gallery = container.parentElement;
+    galleryWidth = gallery ? gallery.offsetWidth : 600;
+
+    saveHistoryState();
+    document.body.style.cursor = 'se-resize';
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
+
+  function onMouseMove(e) {
+    if (!isResizing) return;
+    const dx = e.clientX - startX;
+    let newWidthPx = startWidth + dx;
+    
+    const minWidthPx = 120;
+    if (newWidthPx < minWidthPx) newWidthPx = minWidthPx;
+    if (newWidthPx > galleryWidth) newWidthPx = galleryWidth;
+
+    const widthPercent = Math.round((newWidthPx / galleryWidth) * 100);
+    container.style.width = widthPercent + '%';
   }
-  const controlsBar = btn.closest('.gallery-controls-bar');
-  if (controlsBar) {
-    controlsBar.querySelectorAll('.btn-gallery-layout').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+
+  function onMouseUp(e) {
+    if (!isResizing) return;
+    isResizing = false;
+    document.body.style.cursor = '';
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+    saveAllData();
   }
-  saveAllData();
+}
+
+// MS Word-style Click, Hold & Move (Drag and Drop Reordering)
+let draggedContainer = null;
+
+function makeImageDraggable(container) {
+  container.setAttribute('draggable', 'true');
+
+  container.ondragstart = function(e) {
+    if (isMathRendered) {
+      e.preventDefault();
+      return;
+    }
+    if (e.target.closest('.img-caption') || e.target.classList.contains('resize-handle-se')) {
+      e.preventDefault();
+      return;
+    }
+
+    draggedContainer = container;
+    container.classList.add('is-dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', 'image-drag');
+  };
+
+  container.ondragend = function() {
+    if (draggedContainer) {
+      draggedContainer.classList.remove('is-dragging');
+      draggedContainer = null;
+    }
+    document.querySelectorAll('.image-container').forEach(c => c.classList.remove('drag-over'));
+  };
+
+  container.ondragover = function(e) {
+    if (!draggedContainer || draggedContainer === container) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    container.classList.add('drag-over');
+  };
+
+  container.ondragleave = function() {
+    container.classList.remove('drag-over');
+  };
+
+  container.ondrop = function(e) {
+    if (!draggedContainer || draggedContainer === container) return;
+    e.preventDefault();
+    container.classList.remove('drag-over');
+
+    const gallery = container.parentElement;
+    if (!gallery) return;
+
+    saveHistoryState();
+
+    const bounding = container.getBoundingClientRect();
+    const offset = e.clientY - bounding.top - (bounding.height / 2);
+
+    if (offset < 0) {
+      gallery.insertBefore(draggedContainer, container);
+    } else {
+      gallery.insertBefore(draggedContainer, container.nextSibling);
+    }
+
+    updateImageNumbers();
+    saveAllData();
+  };
 }
 
 // Keep track of which contenteditable was last active for inserting formulas
@@ -1142,14 +1171,8 @@ function createSubImagesBlockHTML() {
   const galleryId = `gallery-${Date.now()}`;
   return `
     <div class="sub-block-wrapper images-space-wrapper">
-      <div class="gallery-controls-bar">
-        <span class="gallery-controls-label">Gallery Layout:</span>
-        <button class="btn-gallery-layout active" data-layout="layout-stacked" onclick="setGalleryLayout(this, 'layout-stacked')">Stacked (1 Col)</button>
-        <button class="btn-gallery-layout" data-layout="layout-grid-2" onclick="setGalleryLayout(this, 'layout-grid-2')">2 Columns</button>
-        <button class="btn-gallery-layout" data-layout="layout-grid-3" onclick="setGalleryLayout(this, 'layout-grid-3')">3 Columns</button>
-      </div>
       <div class="writing-space images-space" id="${dropzoneId}" tabindex="0" placeholder="[Paste image (Ctrl+V) or Drag & Drop screenshot here.]">
-        <div class="image-gallery layout-stacked" id="${galleryId}"></div>
+        <div class="image-gallery" id="${galleryId}"></div>
       </div>
       <div class="block-controls-row">
         <button class="btn-delete-block" onclick="deleteSubBlock(this)">Delete Image Space</button>
