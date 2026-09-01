@@ -308,6 +308,50 @@ function migrateAndSanitizeHTML(htmlString) {
     }
   });
 
+  // 6. Upgrade old images-space-wrapper and image-containers
+  const imageWrappers = tempDiv.querySelectorAll('.images-space-wrapper');
+  imageWrappers.forEach(wrapper => {
+    let bar = wrapper.querySelector('.gallery-controls-bar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.className = 'gallery-controls-bar';
+      bar.innerHTML = `
+        <span class="gallery-controls-label">Gallery Layout:</span>
+        <button class="btn-gallery-layout active" data-layout="layout-stacked" onclick="setGalleryLayout(this, 'layout-stacked')">Stacked (1 Col)</button>
+        <button class="btn-gallery-layout" data-layout="layout-grid-2" onclick="setGalleryLayout(this, 'layout-grid-2')">2 Columns</button>
+        <button class="btn-gallery-layout" data-layout="layout-grid-3" onclick="setGalleryLayout(this, 'layout-grid-3')">3 Columns</button>
+      `;
+      wrapper.insertBefore(bar, wrapper.firstChild);
+    }
+  });
+
+  const imgContainers = tempDiv.querySelectorAll('.image-container');
+  imgContainers.forEach(container => {
+    let toolbar = container.querySelector('.image-toolbar');
+    if (!toolbar) {
+      toolbar = document.createElement('div');
+      toolbar.className = 'image-toolbar';
+      toolbar.innerHTML = `
+        <div class="img-tool-group">
+          <span class="img-tool-label">Order:</span>
+          <button class="img-btn img-move-left" title="Move Left / Up">←</button>
+          <button class="img-btn img-move-right" title="Move Right / Down">→</button>
+        </div>
+        <div class="img-tool-group">
+          <span class="img-tool-label">Size:</span>
+          <button class="img-btn img-size-btn" data-size="33%">33%</button>
+          <button class="img-btn img-size-btn" data-size="50%">50%</button>
+          <button class="img-btn img-size-btn" data-size="75%">75%</button>
+          <button class="img-btn img-size-btn active" data-size="100%">100%</button>
+        </div>
+        <div class="img-tool-group">
+          <button class="img-btn delete-image-btn" title="Delete Image">&times;</button>
+        </div>
+      `;
+      container.insertBefore(toolbar, container.firstChild);
+    }
+  });
+
   return tempDiv.innerHTML;
 }
 
@@ -553,6 +597,27 @@ function deleteColumn(thElement) {
 function addImageToGallery(galleryElement, base64Data) {
   const imgContainer = document.createElement('div');
   imgContainer.className = 'image-container';
+  imgContainer.style.width = '100%';
+
+  const toolbar = document.createElement('div');
+  toolbar.className = 'image-toolbar';
+  toolbar.innerHTML = `
+    <div class="img-tool-group">
+      <span class="img-tool-label">Order:</span>
+      <button class="img-btn img-move-left" title="Move Left / Up">←</button>
+      <button class="img-btn img-move-right" title="Move Right / Down">→</button>
+    </div>
+    <div class="img-tool-group">
+      <span class="img-tool-label">Size:</span>
+      <button class="img-btn img-size-btn" data-size="33%">33%</button>
+      <button class="img-btn img-size-btn" data-size="50%">50%</button>
+      <button class="img-btn img-size-btn" data-size="75%">75%</button>
+      <button class="img-btn img-size-btn active" data-size="100%">100%</button>
+    </div>
+    <div class="img-tool-group">
+      <button class="img-btn delete-image-btn" title="Delete Image">&times;</button>
+    </div>
+  `;
 
   const titleWrapper = document.createElement('div');
   titleWrapper.className = 'image-title-wrapper';
@@ -573,22 +638,84 @@ function addImageToGallery(galleryElement, base64Data) {
   img.src = base64Data;
   img.className = 'pasted-image';
 
-  const deleteBtn = document.createElement('button');
-  deleteBtn.innerHTML = '&times;';
-  deleteBtn.className = 'delete-image-btn';
-  deleteBtn.title = 'Delete Image';
-  deleteBtn.onclick = function() {
-    imgContainer.remove();
-    updateImageNumbers();
-    saveAllData();
-  };
-
+  imgContainer.appendChild(toolbar);
   imgContainer.appendChild(titleWrapper);
   imgContainer.appendChild(img);
-  imgContainer.appendChild(deleteBtn);
   galleryElement.appendChild(imgContainer);
 
+  bindImageContainerEvents(imgContainer);
   updateImageNumbers();
+  saveAllData();
+}
+
+function bindImageContainerEvents(container) {
+  const leftBtn = container.querySelector('.img-move-left');
+  if (leftBtn) {
+    leftBtn.onclick = function() {
+      if (isMathRendered) return;
+      const prev = container.previousElementSibling;
+      if (prev && prev.classList.contains('image-container')) {
+        saveHistoryState();
+        container.parentElement.insertBefore(container, prev);
+        updateImageNumbers();
+        saveAllData();
+      }
+    };
+  }
+
+  const rightBtn = container.querySelector('.img-move-right');
+  if (rightBtn) {
+    rightBtn.onclick = function() {
+      if (isMathRendered) return;
+      const next = container.nextElementSibling;
+      if (next && next.classList.contains('image-container')) {
+        saveHistoryState();
+        container.parentElement.insertBefore(container, next.nextElementSibling);
+        updateImageNumbers();
+        saveAllData();
+      }
+    };
+  }
+
+  const sizeBtns = container.querySelectorAll('.img-size-btn');
+  sizeBtns.forEach(btn => {
+    btn.onclick = function() {
+      if (isMathRendered) return;
+      saveHistoryState();
+      const targetSize = btn.getAttribute('data-size');
+      container.style.width = targetSize;
+      sizeBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      saveAllData();
+    };
+  });
+
+  const deleteBtn = container.querySelector('.delete-image-btn');
+  if (deleteBtn) {
+    deleteBtn.onclick = function() {
+      if (isMathRendered) return;
+      saveHistoryState();
+      container.remove();
+      updateImageNumbers();
+      saveAllData();
+    };
+  }
+}
+
+function setGalleryLayout(btn, layoutClass) {
+  if (isMathRendered) return;
+  saveHistoryState();
+  const wrapper = btn.closest('.images-space-wrapper');
+  const gallery = wrapper ? wrapper.querySelector('.image-gallery') : null;
+  if (gallery) {
+    gallery.classList.remove('layout-stacked', 'layout-grid-2', 'layout-grid-3');
+    gallery.classList.add(layoutClass);
+  }
+  const controlsBar = btn.closest('.gallery-controls-bar');
+  if (controlsBar) {
+    controlsBar.querySelectorAll('.btn-gallery-layout').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
   saveAllData();
 }
 
@@ -728,13 +855,9 @@ function bindAllEvents() {
     };
   });
 
-  // Re-bind image deletion overlays
-  document.querySelectorAll('.delete-image-btn').forEach(btn => {
-    btn.onclick = function() {
-      btn.parentElement.remove();
-      updateImageNumbers();
-      saveAllData();
-    };
+  // Re-bind image container toolbars and deletion
+  document.querySelectorAll('.image-container').forEach(container => {
+    bindImageContainerEvents(container);
   });
 
   // 4. Contenteditable auto-saves
@@ -1019,8 +1142,14 @@ function createSubImagesBlockHTML() {
   const galleryId = `gallery-${Date.now()}`;
   return `
     <div class="sub-block-wrapper images-space-wrapper">
+      <div class="gallery-controls-bar">
+        <span class="gallery-controls-label">Gallery Layout:</span>
+        <button class="btn-gallery-layout active" data-layout="layout-stacked" onclick="setGalleryLayout(this, 'layout-stacked')">Stacked (1 Col)</button>
+        <button class="btn-gallery-layout" data-layout="layout-grid-2" onclick="setGalleryLayout(this, 'layout-grid-2')">2 Columns</button>
+        <button class="btn-gallery-layout" data-layout="layout-grid-3" onclick="setGalleryLayout(this, 'layout-grid-3')">3 Columns</button>
+      </div>
       <div class="writing-space images-space" id="${dropzoneId}" tabindex="0" placeholder="[Paste image (Ctrl+V) or Drag & Drop screenshot here.]">
-        <div class="image-gallery" id="${galleryId}"></div>
+        <div class="image-gallery layout-stacked" id="${galleryId}"></div>
       </div>
       <div class="block-controls-row">
         <button class="btn-delete-block" onclick="deleteSubBlock(this)">Delete Image Space</button>

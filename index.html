@@ -384,8 +384,16 @@ The threshold voltage is given by $V_{TH} = V_{T0} + \gamma(\sqrt{2\phi_f + V_{S
               </div>
             </div>
             <div class="section-body">
-              <div class="writing-space images-space" id="images-dropzone" tabindex="0" placeholder="[Leave a large blank section for pasting experiment screenshots/images. Paste image (Ctrl+V) or Drag & Drop screenshot file directly here.]">
-                <div class="image-gallery" id="gallery-container"></div>
+              <div class="sub-block-wrapper images-space-wrapper">
+                <div class="gallery-controls-bar">
+                  <span class="gallery-controls-label">Gallery Layout:</span>
+                  <button class="btn-gallery-layout active" data-layout="layout-stacked" onclick="setGalleryLayout(this, 'layout-stacked')">Stacked (1 Col)</button>
+                  <button class="btn-gallery-layout" data-layout="layout-grid-2" onclick="setGalleryLayout(this, 'layout-grid-2')">2 Columns</button>
+                  <button class="btn-gallery-layout" data-layout="layout-grid-3" onclick="setGalleryLayout(this, 'layout-grid-3')">3 Columns</button>
+                </div>
+                <div class="writing-space images-space" id="images-dropzone" tabindex="0" placeholder="[Leave a large blank section for pasting experiment screenshots/images. Paste image (Ctrl+V) or Drag & Drop screenshot file directly here.]">
+                  <div class="image-gallery layout-stacked" id="gallery-container"></div>
+                </div>
               </div>
             </div>
             <div class="section-element-bar">

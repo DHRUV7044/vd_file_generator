@@ -555,28 +555,171 @@ body {
   transform: translateY(-1px);
 }
 
-/* Pasted/Dropped CAD Screenshots styling */
-.image-gallery {
+/* Gallery Layout Controls Bar */
+.gallery-controls-bar {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 24px;
-  width: 100%;
-  margin-top: 10px;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 11px;
 }
 
+.gallery-controls-label {
+  font-weight: 600;
+  color: #64748b;
+  margin-right: 4px;
+}
+
+.btn-gallery-layout {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  color: #334155;
+  transition: all 0.15s ease;
+}
+
+.btn-gallery-layout:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.btn-gallery-layout.active {
+  background: var(--primary, #6366f1);
+  color: #fff;
+  border-color: var(--primary, #6366f1);
+  font-weight: 600;
+}
+
+/* Gallery Grid Layout Variations */
+.image-gallery {
+  display: flex;
+  width: 100%;
+  margin-top: 10px;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.image-gallery.layout-stacked {
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.image-gallery.layout-grid-2 {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.image-gallery.layout-grid-2 .image-container {
+  width: calc(50% - 10px);
+  max-width: 100%;
+}
+
+.image-gallery.layout-grid-3 {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.image-gallery.layout-grid-3 .image-container {
+  width: calc(33.33% - 10px);
+  max-width: 100%;
+}
+
+/* Image Container & Interactive Control Toolbar */
 .image-container {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 90%;
+  width: 100%;
   max-width: 600px;
   border: 1px solid #000;
   padding: 8px;
   background: #fff;
   page-break-inside: avoid;
   break-inside: avoid;
+  box-sizing: border-box;
+  transition: width 0.2s ease, max-width 0.2s ease;
+}
+
+.image-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 4px 6px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  box-sizing: border-box;
+  gap: 6px;
+}
+
+.img-tool-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.img-tool-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748b;
+  margin-right: 2px;
+}
+
+.img-btn {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  line-height: 1.2;
+  transition: all 0.15s ease;
+}
+
+.img-btn:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.img-btn.active {
+  background: var(--primary, #6366f1);
+  color: #fff;
+  border-color: var(--primary, #6366f1);
+}
+
+.img-btn.delete-image-btn {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 1px 6px;
+}
+
+.img-btn.delete-image-btn:hover {
+  background: #ef4444;
+  color: #fff;
+  border-color: #dc2626;
 }
 
 .pasted-image {
@@ -938,7 +1081,7 @@ body {
     overflow: visible !important;
   }
 
-  .sidebar, .sidebar-toggle-btn, .section-controls, .section-element-bar, .block-controls-row {
+  .sidebar, .sidebar-toggle-btn, .section-controls, .section-element-bar, .block-controls-row, .image-toolbar, .gallery-controls-bar {
     display: none !important;
   }
 
