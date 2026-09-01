@@ -735,9 +735,10 @@ function makeImageDraggable(container) {
     saveHistoryState();
 
     const bounding = container.getBoundingClientRect();
-    const offset = e.clientY - bounding.top - (bounding.height / 2);
+    const midX = bounding.left + (bounding.width / 2);
+    const midY = bounding.top + (bounding.height / 2);
 
-    if (offset < 0) {
+    if (e.clientY < bounding.top + (bounding.height * 0.3) || (e.clientX < midX && Math.abs(e.clientY - midY) < bounding.height / 2)) {
       gallery.insertBefore(draggedContainer, container);
     } else {
       gallery.insertBefore(draggedContainer, container.nextSibling);
