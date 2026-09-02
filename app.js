@@ -1118,8 +1118,55 @@ function bindAllEvents() {
     el.oninput = saveAllData;
   });
 
-  // 5. Ensure all sections on screen have Upload buttons
+  // 5. Ensure all sections on screen have Upload buttons and Page Break controls
   ensureUploadButtonsOnAllSections();
+  ensureSectionPageBreakButtons();
+}
+
+function ensureSectionPageBreakButtons() {
+  const sections = document.querySelectorAll('.report-section');
+  sections.forEach(sec => {
+    let controls = sec.querySelector('.section-controls');
+    if (controls) {
+      let breakBtn = controls.querySelector('.section-page-break-btn');
+      if (!breakBtn) {
+        breakBtn = document.createElement('button');
+        breakBtn.className = 'section-control-btn section-page-break-btn';
+        breakBtn.title = 'Toggle: Start this section on a fresh new A4 page when printing';
+        breakBtn.setAttribute('onclick', 'toggleSectionPageBreak(this)');
+        breakBtn.innerHTML = '📄 Next Page';
+        const delBtn = controls.querySelector('.delete');
+        if (delBtn) {
+          controls.insertBefore(breakBtn, delBtn);
+        } else {
+          controls.appendChild(breakBtn);
+        }
+      }
+
+      const isBreak = sec.getAttribute('data-page-break') === 'true';
+      if (isBreak) {
+        sec.classList.add('section-page-break');
+        breakBtn.classList.add('active');
+        breakBtn.innerHTML = '📄 Next Page (Active)';
+        let headerRow = sec.querySelector('.section-header-row');
+        if (headerRow && !headerRow.querySelector('.sec-break-indicator')) {
+          const badge = document.createElement('span');
+          badge.className = 'sec-break-indicator';
+          badge.innerHTML = '📄 Starts on Next Page';
+          const titleContainer = headerRow.querySelector('.section-title-container');
+          if (titleContainer) {
+            titleContainer.appendChild(badge);
+          }
+        }
+      } else {
+        sec.classList.remove('section-page-break');
+        breakBtn.classList.remove('active');
+        breakBtn.innerHTML = '📄 Next Page';
+        let badge = sec.querySelector('.sec-break-indicator');
+        if (badge) badge.remove();
+      }
+    }
+  });
 }
 
 // Active DOM Upgrader: Attaches Upload buttons strictly to Image Sections & Image spaces
