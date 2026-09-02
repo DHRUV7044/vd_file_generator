@@ -2964,3 +2964,556 @@ document.addEventListener('keydown', function(e) {
 
 // Initialize application data
 loadAllData();
+
+// ============================================================
+// DOCX IMPORT SECTION FEATURE
+// mammoth.js (MIT License) — https://github.com/mwilliamson/mammoth.js
+// ============================================================
+
+(function() {
+  // ── State ──────────────────────────────────────────────────
+  let _pendingFile = null;
+
+  // ── Button wiring ──────────────────────────────────────────
+  const importBtn  = document.getElementById('btn-import-docx-sec');
+  const fileInput  = document.getElementById('docx-file-input');
+  const modal      = document.getElementById('docx-import-modal');
+  const modalName  = document.getElementById('docx-modal-filename');
+  const titleInput = document.getElementById('docx-section-title-input');
+  const noticeEl   = document.getElementById('docx-modal-notice');
+  const cancelBtn  = document.getElementById('docx-modal-cancel');
+  const confirmBtn = document.getElementById('docx-modal-confirm');
+
+  importBtn.addEventListener('click', function() {
+    if (isMathRendered) {
+      alert('Please turn off "Preview Math" before importing a section.');
+      return;
+    }
+    fileInput.value = '';
+    fileInput.click();
+  });
+
+  fileInput.addEventListener('change', function() {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    // Validate extension
+    if (!file.name.toLowerCase().endsWith('.docx')) {
+      showDocxError('Please select a DOCX (.docx) file.');
+      return;
+    }
+
+    _pendingFile = file;
+    openDocxModal(file.name);
+  });
+
+  cancelBtn.addEventListener('click', closeDocxModal);
+
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) closeDocxModal();
+  });
+
+  confirmBtn.addEventListener('click', function() {
+    const title = titleInput.value.trim() || 'IMPORTED SECTION';
+    if (!_pendingFile) return;
+    runDocxImport(_pendingFile, title);
+  });
+
+  titleInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') confirmBtn.click();
+    if (e.key === 'Escape') closeDocxModal();
+  });
+
+  // ── Modal helpers ──────────────────────────────────────────
+  function openDocxModal(filename) {
+    modalName.textContent = '📄 ' + filename;
+    titleInput.value = filenameToTitle(filename);
+    noticeEl.style.display = 'none';
+    noticeEl.className = 'docx-modal-notice';
+    confirmBtn.disabled = false;
+    confirmBtn.classList.remove('loading');
+    confirmBtn.textContent = '📥 Import Section';
+    modal.style.display = 'flex';
+    setTimeout(() => titleInput.select(), 80);
+  }
+
+  function closeDocxModal() {
+    modal.style.display = 'none';
+    _pendingFile = null;
+    fileInput.value = '';
+  }
+
+  function setNotice(msg, isError) {
+    noticeEl.textContent = msg;
+    noticeEl.className = 'docx-modal-notice' + (isError ? ' is-error' : '');
+    noticeEl.style.display = 'block';
+  }
+
+  function showDocxError(msg) {
+    alert(msg);
+  }
+
+  function filenameToTitle(filename) {
+    return filename
+      .replace(/\.docx$/i, '')
+      .replace(/[-_]/g, ' ')
+      .replace(/\b\w/g, c => c.toUpperCase())
+      .trim()
+      .toUpperCase();
+  }
+
+  // ── Core import ────────────────────────────────────────────
+  function runDocxImport(file, title) {
+    confirmBtn.disabled = true;
+    confirmBtn.classList.add('loading');
+    confirmBtn.textContent = 'Importing';
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const arrayBuffer = e.target.result;
+
+      // mammoth options: preserve basic styles, convert images to data URIs
+      const options = {
+        convertImage: mammoth.images.dataUri
+      };
+
+      mammoth.convertToHtml({ arrayBuffer }, options)
+        .then(function(result) {
+          const rawHtml = result.value;
+          const messages = result.messages || [];
+
+          if (!rawHtml || rawHtml.trim() === '') {
+            setNotice('The DOCX appears to be empty or contains only unsupported content.', true);
+            confirmBtn.disabled = false;
+            confirmBtn.classList.remove('loading');
+            confirmBtn.textContent = '📥 Import Section';
+            return;
+          }
+
+          // Show non-blocking warnings (e.g. unsupported elements)
+          const warnings = messages.filter(m => m.type === 'warning');
+          if (warnings.length > 0) {
+            setNotice(
+              'Some content could not be fully converted: ' +
+              warnings.slice(0, 2).map(w => w.message).join('; ') +
+              (warnings.length > 2 ? ` (+${warnings.length - 2} more)` : ''),
+              false
+            );
+          }
+
+          // Sanitize, build section, insert
+          const safeHtml = sanitizeDocxHtml(rawHtml);
+          insertImportedSection(title, safeHtml);
+
+          closeDocxModal();
+        })
+        .catch(function(err) {
+          console.error('mammoth DOCX parse error:', err);
+          setNotice('Unable to import this DOCX file. It may be corrupted or in an unsupported format.', true);
+          confirmBtn.disabled = false;
+          confirmBtn.classList.remove('loading');
+          confirmBtn.textContent = '📥 Import Section';
+        });
+    };
+
+    reader.onerror = function() {
+      setNotice('Could not read the file. Please try again.', true);
+      confirmBtn.disabled = false;
+      confirmBtn.classList.remove('loading');
+      confirmBtn.textContent = '📥 Import Section';
+    };
+
+    reader.readAsArrayBuffer(file);
+  }
+
+  // ── HTML Sanitizer ─────────────────────────────────────────
+  // Strips script/event-handler injection while preserving formatting.
+  function sanitizeDocxHtml(html) {
+    const ALLOWED_TAGS = new Set([
+      'p','br','strong','b','em','i','u','s','span','div',
+      'h1','h2','h3','h4','h5','h6',
+      'ul','ol','li',
+      'table','thead','tbody','tr','th','td','colgroup','col',
+      'img','a','sup','sub','blockquote','hr'
+    ]);
+
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+
+    function walk(node) {
+      const children = Array.from(node.childNodes);
+      for (const child of children) {
+        if (child.nodeType === Node.ELEMENT_NODE) {
+          const tag = child.tagName.toLowerCase();
+
+          // Remove disallowed tags entirely (and their content for dangerous ones)
+          if (['script','style','iframe','object','embed','form','input','button','link','meta'].includes(tag)) {
+            child.remove();
+            continue;
+          }
+
+          if (!ALLOWED_TAGS.has(tag)) {
+            // Replace with a span to preserve text
+            const span = document.createElement('span');
+            span.innerHTML = child.innerHTML;
+            child.replaceWith(span);
+            walk(span);
+            continue;
+          }
+
+          // Strip all event handler attributes and javascript: hrefs
+          const attrs = Array.from(child.attributes);
+          for (const attr of attrs) {
+            if (attr.name.startsWith('on')) {
+              child.removeAttribute(attr.name);
+            } else if (attr.name === 'href' && attr.value.trim().toLowerCase().startsWith('javascript:')) {
+              child.removeAttribute('href');
+            } else if (attr.name === 'style') {
+              // Allow only safe CSS properties
+              child.setAttribute('style', sanitizeStyle(attr.value));
+            }
+          }
+
+          walk(child);
+        }
+      }
+    }
+
+    walk(temp);
+    return temp.innerHTML;
+  }
+
+  // Only allow a safe whitelist of CSS properties
+  function sanitizeStyle(styleStr) {
+    const SAFE_PROPS = new Set([
+      'font-weight','font-style','text-decoration','text-align',
+      'color','background-color','margin','padding',
+      'border','border-collapse','width','height','max-width'
+    ]);
+    const result = [];
+    styleStr.split(';').forEach(decl => {
+      const [prop] = decl.split(':');
+      if (prop && SAFE_PROPS.has(prop.trim().toLowerCase())) {
+        result.push(decl.trim());
+      }
+    });
+    return result.join('; ');
+  }
+
+  // ── Section Builder ────────────────────────────────────────
+  function insertImportedSection(title, safeHtml) {
+    // One undo state for the whole import
+    saveHistoryState();
+
+    const section = document.createElement('div');
+    section.className = 'report-section';
+    section.setAttribute('data-type', 'text');
+
+    section.innerHTML = `
+      <div class="section-header-row">
+        <div class="section-title-container">
+          <span class="section-number"></span>
+          <span class="section-title-text" contenteditable="true">${escapeHtml(title)}</span>
+        </div>
+        <div class="section-controls">
+          <button class="section-control-btn move-up-btn" title="Move Up">↑</button>
+          <button class="section-control-btn move-down-btn" title="Move Down">↓</button>
+          <button class="section-control-btn section-page-break-btn" onclick="toggleSectionPageBreak(this)" title="Toggle: Start this section on a fresh new A4 page when printing">📄 Next Page</button>
+          <button class="section-control-btn delete" title="Delete Section">&times;</button>
+        </div>
+      </div>
+      <div class="section-body"></div>
+      <div class="section-element-bar">
+        <button class="btn-sec-add" onclick="addTableToSectionBody(this)">+ Add Table Grid</button>
+        <button class="btn-sec-add" onclick="addImageSpaceToSectionBody(this)">+ Add Image Dropzone</button>
+        <button class="btn-sec-add" onclick="addTextBlockToSectionBody(this)">+ Add Text Area</button>
+      </div>
+    `;
+
+    const body = section.querySelector('.section-body');
+    buildSectionBodyFromDocxHtml(safeHtml, body);
+
+    sectionsContainer.appendChild(section);
+    updateSectionNumbers();
+    bindAllEvents();
+    saveAllData();
+
+    // Scroll to the new section
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ── DOM Walker: mammoth HTML → native section blocks ───────
+  function buildSectionBodyFromDocxHtml(html, bodyEl) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<div>' + html + '</div>', 'text/html');
+    const root = doc.body.firstElementChild;
+    if (!root) return;
+
+    // We group consecutive non-table, non-image top-level nodes into
+    // a single .writing-space block, then emit tables and images separately.
+    let currentTextBuf = [];
+
+    function flushText() {
+      if (currentTextBuf.length === 0) return;
+      const ws = document.createElement('div');
+      ws.className = 'writing-space';
+      ws.setAttribute('contenteditable', 'true');
+      currentTextBuf.forEach(n => ws.appendChild(n.cloneNode(true)));
+      bodyEl.appendChild(ws);
+      currentTextBuf = [];
+    }
+
+    const topChildren = Array.from(root.childNodes);
+    for (const node of topChildren) {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const tag = node.tagName.toLowerCase();
+
+        if (tag === 'table') {
+          flushText();
+          const tableContainer = createDocxTableHTML(node);
+          bodyEl.appendChild(tableContainer);
+          continue;
+        }
+
+        if (tag === 'img') {
+          flushText();
+          const imgContainer = createDocxImageContainer(node);
+          if (imgContainer) bodyEl.appendChild(imgContainer);
+          continue;
+        }
+
+        // Check if this block contains an img (mammoth sometimes wraps imgs in p)
+        if (['p','div'].includes(tag)) {
+          const imgs = node.querySelectorAll('img');
+          if (imgs.length > 0 && node.textContent.trim() === '') {
+            // Pure image paragraph
+            flushText();
+            imgs.forEach(img => {
+              const imgContainer = createDocxImageContainer(img);
+              if (imgContainer) bodyEl.appendChild(imgContainer);
+            });
+            continue;
+          }
+        }
+
+        // Everything else: headings, paragraphs, lists → text buffer
+        currentTextBuf.push(convertBlockToSectionContent(node));
+      } else if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+        const p = document.createElement('p');
+        p.textContent = node.textContent;
+        currentTextBuf.push(p);
+      }
+    }
+
+    flushText();
+
+    // If body is empty, add a blank writing space
+    if (bodyEl.children.length === 0) {
+      const ws = document.createElement('div');
+      ws.className = 'writing-space';
+      ws.setAttribute('contenteditable', 'true');
+      bodyEl.appendChild(ws);
+    }
+  }
+
+  // Convert a single block element (h1-h6, p, ul, ol, etc.) preserving inline formatting
+  function convertBlockToSectionContent(el) {
+    const tag = el.tagName.toLowerCase();
+
+    // Convert headings to bold paragraphs (matches app typography)
+    if (['h1','h2','h3','h4','h5','h6'].includes(tag)) {
+      const p = document.createElement('p');
+      const strong = document.createElement('strong');
+      strong.innerHTML = el.innerHTML;
+      p.appendChild(strong);
+      return p;
+    }
+
+    // Lists: preserve as-is (ul/ol with li children)
+    if (['ul','ol'].includes(tag)) {
+      return el.cloneNode(true);
+    }
+
+    // Everything else (p, div, span, etc.) → clone as-is
+    return el.cloneNode(true);
+  }
+
+  // ── Table converter ────────────────────────────────────────
+  function createDocxTableHTML(tableEl) {
+    const tableId = 'table-docx-' + Date.now() + '-' + Math.floor(Math.random() * 9999);
+    const rows = Array.from(tableEl.querySelectorAll('tr'));
+
+    if (rows.length === 0) return document.createElement('div');
+
+    // Detect header row: first row treated as header
+    const headerRow = rows[0];
+    const bodyRows  = rows.slice(1);
+
+    const headerCells = Array.from(headerRow.querySelectorAll('th, td'));
+    const colCount    = headerCells.length;
+    const colWidth    = colCount > 1
+      ? Math.floor(90 / colCount) + '%'
+      : '90%';
+
+    // Build container
+    const container = document.createElement('div');
+    container.className = 'sub-block-wrapper table-container';
+
+    // Caption
+    const caption = document.createElement('div');
+    caption.className = 'table-caption';
+    caption.setAttribute('contenteditable', 'true');
+    caption.textContent = 'Table Caption';
+    container.appendChild(caption);
+
+    // Build <table>
+    const table = document.createElement('table');
+    table.className = 'lab-table';
+    table.id = tableId;
+
+    // colgroup
+    const colgroup = document.createElement('colgroup');
+    headerCells.forEach((_, i) => {
+      const col = document.createElement('col');
+      col.style.width = i === colCount - 1 ? '10%' : colWidth;
+      colgroup.appendChild(col);
+    });
+    // actions col
+    const actionsCol = document.createElement('col');
+    actionsCol.style.width = '10%';
+    actionsCol.className = 'table-actions-column';
+    colgroup.appendChild(actionsCol);
+    table.appendChild(colgroup);
+
+    // thead
+    const thead = document.createElement('thead');
+    const theadTr = document.createElement('tr');
+    headerCells.forEach((cell, i) => {
+      const th = document.createElement('th');
+      const wrapper = document.createElement('div');
+      wrapper.className = 'th-content-wrapper';
+      const span = document.createElement('span');
+      span.className = 'editable-th';
+      span.setAttribute('contenteditable', 'true');
+      span.textContent = cell.textContent.trim();
+      wrapper.appendChild(span);
+      if (i > 0) {
+        const delColBtn = document.createElement('button');
+        delColBtn.className = 'delete-col-btn';
+        delColBtn.title = 'Delete Column';
+        delColBtn.innerHTML = '&times;';
+        wrapper.appendChild(delColBtn);
+      }
+      th.appendChild(wrapper);
+      theadTr.appendChild(th);
+    });
+    // actions th
+    const actsTh = document.createElement('th');
+    actsTh.className = 'table-actions-header';
+    theadTr.appendChild(actsTh);
+    thead.appendChild(theadTr);
+    table.appendChild(thead);
+
+    // tbody
+    const tbody = document.createElement('tbody');
+    bodyRows.forEach(row => {
+      const cells = Array.from(row.querySelectorAll('th, td'));
+      const tr = document.createElement('tr');
+      // Ensure we produce at least colCount data cells
+      for (let i = 0; i < colCount; i++) {
+        const td = document.createElement('td');
+        td.setAttribute('contenteditable', 'true');
+        td.textContent = cells[i] ? cells[i].textContent.trim() : '';
+        tr.appendChild(td);
+      }
+      const actTd = document.createElement('td');
+      actTd.className = 'row-actions-cell';
+      const delRowBtn = document.createElement('button');
+      delRowBtn.className = 'delete-row-btn';
+      delRowBtn.innerHTML = '&times;';
+      actTd.appendChild(delRowBtn);
+      tr.appendChild(actTd);
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    container.appendChild(table);
+
+    // Action row (Add Row / Add Column / Delete Table)
+    const actionsRow = document.createElement('div');
+    actionsRow.className = 'table-actions-row';
+    actionsRow.innerHTML = `
+      <button class="btn-add-row" data-action="add-row" data-table="${tableId}">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        Add Row
+      </button>
+      <button class="btn-add-col" data-action="add-col" data-table="${tableId}">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        Add Column
+      </button>
+      <button class="btn-delete-block" onclick="deleteSubBlock(this)">Delete Table</button>
+    `;
+    container.appendChild(actionsRow);
+
+    return container;
+  }
+
+  // ── Image converter ────────────────────────────────────────
+  function createDocxImageContainer(imgEl) {
+    const src = imgEl.getAttribute('src') || '';
+    if (!src) return null;
+
+    // Only allow data URIs (mammoth always produces data URIs for embedded images)
+    if (!src.startsWith('data:image/')) return null;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'sub-block-wrapper images-space-wrapper';
+
+    const dropzoneId = 'dropzone-docx-' + Date.now() + '-' + Math.floor(Math.random() * 9999);
+    const galleryId  = 'gallery-docx-'  + Date.now() + '-' + Math.floor(Math.random() * 9999);
+
+    const space = document.createElement('div');
+    space.className = 'writing-space images-space';
+    space.id = dropzoneId;
+    space.setAttribute('tabindex', '0');
+
+    const gallery = document.createElement('div');
+    gallery.className = 'image-gallery';
+    gallery.id = galleryId;
+    space.appendChild(gallery);
+    wrapper.appendChild(space);
+
+    // Action bar
+    const actionBar = document.createElement('div');
+    actionBar.className = 'image-section-action-bar';
+    actionBar.innerHTML = `
+      <input type="file" class="hidden-file-input" accept="image/*" multiple style="display:none;" onchange="handleImageFileUpload(this)">
+      <button class="btn-upload-more-img" onclick="triggerImageFileUpload(this)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+        + Upload / Add More Images
+      </button>
+    `;
+    wrapper.appendChild(actionBar);
+
+    const blockControls = document.createElement('div');
+    blockControls.className = 'block-controls-row';
+    blockControls.innerHTML = '<button class="btn-delete-block" onclick="deleteSubBlock(this)">Delete Image Space</button>';
+    wrapper.appendChild(blockControls);
+
+    // Add the image to the gallery using the existing addImageToGallery function
+    // We do this after the element is in DOM, so we schedule it
+    requestAnimationFrame(function() {
+      addImageToGallery(gallery, src);
+    });
+
+    return wrapper;
+  }
+
+})(); // end DOCX import IIFE

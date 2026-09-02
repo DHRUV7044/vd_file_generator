@@ -1996,3 +1996,195 @@ body {
     background: transparent !important;
   }
 }
+
+/* ============================================================
+   DOCX Import Button
+   ============================================================ */
+.btn-import-docx {
+  margin-top: 6px;
+  border: 1.5px dashed rgba(99, 102, 241, 0.6) !important;
+  color: #a5b4fc !important;
+  background: rgba(99, 102, 241, 0.07) !important;
+  position: relative;
+}
+
+.btn-import-docx:hover {
+  background: rgba(99, 102, 241, 0.18) !important;
+  border-color: #6366f1 !important;
+  color: #c7d2fe !important;
+}
+
+/* ============================================================
+   DOCX Import Modal
+   ============================================================ */
+.docx-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  animation: docxFadeIn 0.18s ease;
+}
+
+@keyframes docxFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.docx-modal-card {
+  background: #1e293b;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  border-radius: 14px;
+  padding: 28px 32px;
+  width: 420px;
+  max-width: 94vw;
+  box-shadow: 0 32px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+  animation: docxSlideUp 0.22s cubic-bezier(.16,1,.3,1);
+}
+
+@keyframes docxSlideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.docx-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.docx-modal-icon {
+  font-size: 20px;
+}
+
+.docx-modal-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #e2e8f0;
+  letter-spacing: 0.2px;
+}
+
+.docx-modal-filename {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-bottom: 18px;
+  word-break: break-all;
+  padding-left: 2px;
+}
+
+.docx-modal-field {
+  margin-bottom: 16px;
+}
+
+.docx-modal-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.docx-modal-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: #0f172a;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 13px;
+  padding: 9px 12px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.docx-modal-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+}
+
+.docx-modal-notice {
+  font-size: 11px;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  border-radius: 6px;
+  padding: 7px 10px;
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
+.docx-modal-notice.is-error {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.08);
+  border-color: rgba(248, 113, 113, 0.25);
+}
+
+.docx-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.docx-modal-btn {
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.18s;
+}
+
+.docx-modal-cancel {
+  background: transparent;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+.docx-modal-cancel:hover {
+  background: #1e293b;
+  border-color: #475569;
+  color: #e2e8f0;
+}
+
+.docx-modal-confirm {
+  background: #6366f1;
+  color: #fff;
+  border-color: #6366f1;
+}
+
+.docx-modal-confirm:hover {
+  background: #4f46e5;
+  border-color: #4f46e5;
+}
+
+.docx-modal-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Spinner inside confirm button when loading */
+.docx-modal-confirm.loading::after {
+  content: '';
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: docxSpin 0.6s linear infinite;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+@keyframes docxSpin {
+  to { transform: rotate(360deg); }
+}
+
