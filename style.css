@@ -1397,6 +1397,7 @@ body {
     height: auto !important;
     page-break-after: avoid;
     background: #fff !important;
+    display: block !important; /* Force block context so page-break-before works in Chrome */
   }
 
   /* Preserve selected margin widths inside the page content in print mode */
@@ -1405,6 +1406,7 @@ body {
   .page.margin-wide { padding: 25mm 20mm 25mm 30mm !important; }
 
   .report-section {
+    display: block !important; /* Force block context for Chrome page breaking */
     page-break-inside: auto !important;
     break-inside: auto !important;
   }
@@ -1454,10 +1456,12 @@ body {
 
   /* Section Page Break Print Rule (Force Section to Start on Next Page) */
   .report-section.section-page-break {
+    display: block !important;
     page-break-before: always !important;
     break-before: page !important;
+    clear: both !important;
     margin-top: 0 !important;
-    padding-top: 10mm !important;
+    padding-top: 0 !important;
     border-top: none !important;
   }
 
