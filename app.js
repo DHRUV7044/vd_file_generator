@@ -1338,12 +1338,22 @@ function closeImageStudio() {
 function setStudioImagesPerPage(count) {
   studioImagesPerPage = count;
   document.querySelectorAll('.studio-preset-btn').forEach(btn => {
-    const gridVal = parseInt(btn.getAttribute('data-grid'), 10);
-    if (gridVal === count) {
+    const gridVal = btn.getAttribute('data-grid');
+    if (gridVal == count) {
       btn.classList.add('active');
     } else {
       btn.classList.remove('active');
     }
+  });
+  renderStudioCanvas();
+}
+
+function addStudioTextBox() {
+  studioImagesData.push({
+    id: `txt-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+    isText: true,
+    text: '[Type custom text box / note here...]',
+    rotation: 0
   });
   renderStudioCanvas();
 }
@@ -1364,8 +1374,44 @@ function renderStudioCanvas() {
     return;
   }
 
+  if (studioImagesPerPage === 'freeform') {
+    const gridContainer = document.createElement('div');
+    gridContainer.className = 'studio-grid-container grid-layout-freeform';
+
+    studioImagesData.forEach((item, idx) => {
+      const itemEl = document.createElement('div');
+      itemEl.className = 'studio-item freeform-item';
+      itemEl.setAttribute('data-id', item.id);
+
+      if (item.isText) {
+        itemEl.innerHTML = `
+          <div class="studio-item-actions">
+            <button class="studio-item-btn danger" onclick="deleteStudioItem('${item.id}')" title="Delete">🗑</button>
+          </div>
+          <div class="studio-item-title" contenteditable="true" style="font-size: 13px; font-weight: 600; width: 100%; border: none;" oninput="updateStudioItemText('${item.id}', this)">${item.text}</div>
+        `;
+      } else {
+        const rotDeg = item.rotation || 0;
+        const defaultTitle = item.title ? item.title : `Figure ${idx + 1}:`;
+        itemEl.innerHTML = `
+          <div class="studio-item-actions">
+            <button class="studio-item-btn" onclick="rotateStudioItem('${item.id}')" title="Rotate 90°">🔄</button>
+            <button class="studio-item-btn danger" onclick="deleteStudioItem('${item.id}')" title="Delete">🗑</button>
+          </div>
+          <div class="studio-item-title" contenteditable="true" oninput="updateStudioItemTitle('${item.id}', this)">${defaultTitle}</div>
+          <img src="${item.src}" style="transform: rotate(${rotDeg}deg);">
+        `;
+      }
+
+      gridContainer.appendChild(itemEl);
+    });
+
+    canvas.appendChild(gridContainer);
+    return;
+  }
+
   // Chunk images per page based on studioImagesPerPage (1, 2, 3, or 4)
-  const pageSize = studioImagesPerPage;
+  const pageSize = parseInt(studioImagesPerPage, 10) || 2;
 
   for (let i = 0; i < studioImagesData.length; i += pageSize) {
     const chunk = studioImagesData.slice(i, i + pageSize);
@@ -1379,21 +1425,37 @@ function renderStudioCanvas() {
       itemEl.className = 'studio-item';
       itemEl.setAttribute('data-id', item.id);
 
-      const rotDeg = item.rotation || 0;
-      const defaultTitle = item.title ? item.title : `Figure ${overallIndex}:`;
+      if (item.isText) {
+        itemEl.innerHTML = `
+          <div class="studio-item-actions">
+            <button class="studio-item-btn danger" onclick="deleteStudioItem('${item.id}')" title="Delete">🗑</button>
+          </div>
+          <div class="studio-item-title" contenteditable="true" style="font-size: 13px; font-weight: 600; width: 100%; border: none;" oninput="updateStudioItemText('${item.id}', this)">${item.text}</div>
+        `;
+      } else {
+        const rotDeg = item.rotation || 0;
+        const defaultTitle = item.title ? item.title : `Figure ${overallIndex}:`;
 
-      itemEl.innerHTML = `
-        <div class="studio-item-actions">
-          <button class="studio-item-btn" onclick="rotateStudioItem('${item.id}')" title="Rotate 90°">🔄</button>
-          <button class="studio-item-btn danger" onclick="deleteStudioItem('${item.id}')" title="Delete">🗑</button>
-        </div>
-        <img src="${item.src}" style="transform: rotate(${rotDeg}deg);">
-        <div class="studio-item-title" contenteditable="true" oninput="updateStudioItemTitle('${item.id}', this)">${defaultTitle}</div>
-      `;
+        itemEl.innerHTML = `
+          <div class="studio-item-actions">
+            <button class="studio-item-btn" onclick="rotateStudioItem('${item.id}')" title="Rotate 90°">🔄</button>
+            <button class="studio-item-btn danger" onclick="deleteStudioItem('${item.id}')" title="Delete">🗑</button>
+          </div>
+          <div class="studio-item-title" contenteditable="true" oninput="updateStudioItemTitle('${item.id}', this)">${defaultTitle}</div>
+          <img src="${item.src}" style="transform: rotate(${rotDeg}deg);">
+        `;
+      }
       gridContainer.appendChild(itemEl);
     });
 
     canvas.appendChild(gridContainer);
+  }
+}
+
+function updateStudioItemText(id, editable) {
+  const item = studioImagesData.find(x => x.id === id);
+  if (item) {
+    item.text = editable.textContent.trim();
   }
 }
 

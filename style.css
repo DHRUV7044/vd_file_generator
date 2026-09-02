@@ -1651,6 +1651,14 @@ body {
   box-sizing: border-box;
 }
 
+/* Freeform Layout Preset (MS Word / Google Docs Canvas) */
+.studio-grid-container.grid-layout-freeform {
+  display: block !important;
+  position: relative;
+  min-height: 250mm;
+  width: 100%;
+}
+
 /* 1 Image / Page Preset (Full A4 Hero) */
 .studio-grid-container.grid-layout-1 {
   grid-template-columns: 1fr;
