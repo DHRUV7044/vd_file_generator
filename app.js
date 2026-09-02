@@ -1584,13 +1584,13 @@ function renderStudioCanvas() {
       } else {
         itemEl.innerHTML = `
           <div class="studio-item-actions">
+            <input class="studio-item-title-input" placeholder="Title: e.g. Schematic" value="${item.title || ''}" oninput="updateStudioItemTitle('${item.id}', this.value)" style="padding: 2px 6px; font-size: 11px; border: 1px solid #cbd5e1; border-radius: 4px; width: 130px;" title="Image Title Metadata">
             <select class="studio-item-page-select" onchange="moveStudioItemToPage('${item.id}', this.value)" title="Move to Page">
               ${pageOptionsHTML}
             </select>
             <button class="studio-item-btn" onclick="rotateStudioItem('${item.id}')" title="Rotate 90°">🔄</button>
             <button class="studio-item-btn danger" onclick="deleteStudioItem('${item.id}')" title="Delete">🗑</button>
           </div>
-          <div class="studio-item-title" contenteditable="true" oninput="updateStudioItemTitle('${item.id}', this)">${defaultTitle}</div>
           <div class="studio-img-wrapper" style="transform: rotate(${rotDeg}deg);">
             <img src="${item.src}">
           </div>
@@ -1620,10 +1620,10 @@ function renderStudioCanvas() {
   canvas.appendChild(addPageBtnContainer);
 }
 
-function updateStudioItemText(id, editable) {
+function updateStudioItemTitle(id, val) {
   const item = studioImagesData.find(x => x.id === id);
   if (item) {
-    item.text = editable.textContent.trim();
+    item.title = val;
   }
 }
 
