@@ -319,27 +319,44 @@ body {
   user-select: none;
 }
 
-/* Screen Editor Preview for Section Page Break */
+/* Screen Editor Preview for Section Page Break (Realistic A4 Page Sheet Gap) */
 .report-section.section-page-break {
-  margin-top: 2.5rem !important;
-  border-top: 2px dashed var(--primary, #6366f1) !important;
-  padding-top: 1rem !important;
+  margin-top: 55px !important;
   position: relative;
 }
 
 .report-section.section-page-break::before {
-  content: "✂ PAGE BREAK — Starts on New Page";
-  display: inline-block;
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--primary, #6366f1);
-  background: rgba(99, 102, 241, 0.08);
-  border: 1px dashed rgba(99, 102, 241, 0.4);
-  padding: 2px 8px;
-  border-radius: 4px;
-  margin-bottom: 12px;
+  content: "";
+  position: absolute;
+  top: -40px;
+  left: -35px;
+  right: -35px;
+  height: 32px;
+  background: #0f172a;
+  border-top: 2px dashed rgba(255, 255, 255, 0.2);
+  border-bottom: 2px dashed rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 6px 12px rgba(0,0,0,0.6);
+  z-index: 5;
+}
+
+.report-section.section-page-break::after {
+  content: "📄 PAGE BREAK — Starts on New A4 Page";
+  position: absolute;
+  top: -34px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 800;
+  color: #6366f1;
+  background: #ffffff;
+  border: 1.5px solid #6366f1;
+  padding: 3px 14px;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  z-index: 10;
   letter-spacing: 0.5px;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .btn-sec-add.btn-sec-upload {
@@ -1465,7 +1482,8 @@ body {
     border-top: none !important;
   }
 
-  .report-section.section-page-break::before {
+  .report-section.section-page-break::before,
+  .report-section.section-page-break::after {
     display: none !important;
   }
 
