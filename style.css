@@ -1755,18 +1755,21 @@ body {
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  transform-origin: center center !important;
-  transition: transform 0.05s ease-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none !important;
   outline: none !important;
   background: transparent !important;
 }
 
 .studio-item img {
-  width: 100%;
-  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
   display: block;
+  transform-origin: center center !important;
+  transition: transform 0.1s ease-out;
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
