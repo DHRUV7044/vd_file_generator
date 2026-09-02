@@ -845,16 +845,8 @@ function deleteImageContainer(btn) {
   }
 }
 
-// Contextual Selection Event Listener & Section Page Break Handler
+// Contextual Selection Event Listener
 document.addEventListener('click', function(e) {
-  const breakBtn = e.target.closest('.section-page-break-btn');
-  if (breakBtn) {
-    e.preventDefault();
-    e.stopPropagation();
-    toggleSectionPageBreak(breakBtn);
-    return;
-  }
-
   const clickedContainer = e.target.closest('.image-container');
   if (clickedContainer) {
     document.querySelectorAll('.image-container').forEach(c => c.classList.remove('is-selected'));
