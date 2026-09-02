@@ -1204,6 +1204,7 @@ function ensureUploadButtonsOnAllSections() {
       }
     }
   });
+} // end ensureUploadButtonsOnAllSections
 
 // Toggle Section Page Break (Start Section on Next Page when printing)
 function toggleSectionPageBreak(btnOrId) {
@@ -1260,97 +1261,6 @@ function toggleSectionPageBreak(btnOrId) {
   saveAllData();
 }
 
-  // 3. For all Sections, ensure header controls include 📄 Next Page button, and 📷 Upload Image button for Image Sections
-  const sections = document.querySelectorAll('.report-section');
-  sections.forEach(sec => {
-    const titleText = sec.querySelector('.section-title-text');
-    const hasImageSpace = sec.querySelector('.images-space');
-    const titleString = titleText ? titleText.textContent.toUpperCase() : '';
-    const isImageSec = (hasImageSpace || titleString.includes('IMAGE') || titleString.includes('SIMULATION') || titleString.includes('SCREENSHOT'));
-
-    let controls = sec.querySelector('.section-controls');
-    if (controls) {
-      // Ensure 📄 Next Page button exists
-      let breakBtn = controls.querySelector('.section-page-break-btn');
-      if (!breakBtn) {
-        breakBtn = document.createElement('button');
-        breakBtn.className = 'section-control-btn section-page-break-btn';
-        breakBtn.title = 'Toggle: Start this section on a fresh new A4 page when printing';
-        breakBtn.setAttribute('onclick', 'toggleSectionPageBreak(this)');
-        breakBtn.innerHTML = '📄 Next Page';
-        const delBtn = controls.querySelector('.delete');
-        if (delBtn) {
-          controls.insertBefore(breakBtn, delBtn);
-        } else {
-          controls.appendChild(breakBtn);
-        }
-      }
-
-      // Re-apply section page break active state if stored
-      if (sec.getAttribute('data-page-break') === 'true') {
-        sec.classList.add('section-page-break');
-        breakBtn.classList.add('active');
-        breakBtn.innerHTML = '📄 Next Page (Active)';
-        let headerRow = sec.querySelector('.section-header-row');
-        if (headerRow && !headerRow.querySelector('.sec-break-indicator')) {
-          const badge = document.createElement('span');
-          badge.className = 'sec-break-indicator';
-          badge.innerHTML = '📄 Starts on Next Page';
-          const titleContainer = headerRow.querySelector('.section-title-container');
-          if (titleContainer) {
-            titleContainer.appendChild(badge);
-          }
-        }
-      }
-
-      let headerUploadBtn = controls.querySelector('.upload-img-btn');
-      let studioOpenBtn = controls.querySelector('.studio-open-btn');
-
-      if (isImageSec) {
-        if (!studioOpenBtn) {
-          studioOpenBtn = document.createElement('button');
-          studioOpenBtn.className = 'section-control-btn studio-open-btn';
-          studioOpenBtn.title = 'Open Image Studio & Slide Builder';
-          studioOpenBtn.setAttribute('onclick', 'openImageStudio(this)');
-          studioOpenBtn.innerHTML = '🖼️ Studio';
-          if (breakBtn) {
-            controls.insertBefore(studioOpenBtn, breakBtn);
-          } else {
-            const delBtn = controls.querySelector('.delete');
-            if (delBtn) {
-              controls.insertBefore(studioOpenBtn, delBtn);
-            } else {
-              controls.appendChild(studioOpenBtn);
-            }
-          }
-        }
-
-        if (!headerUploadBtn) {
-          headerUploadBtn = document.createElement('button');
-          headerUploadBtn.className = 'section-control-btn upload-img-btn';
-          headerUploadBtn.title = 'Upload Image to Section';
-          headerUploadBtn.setAttribute('onclick', 'triggerImageFileUpload(this)');
-          headerUploadBtn.innerHTML = '📷 Upload Image';
-          if (studioOpenBtn) {
-            controls.insertBefore(headerUploadBtn, studioOpenBtn);
-          } else if (breakBtn) {
-            controls.insertBefore(headerUploadBtn, breakBtn);
-          } else {
-            const delBtn = controls.querySelector('.delete');
-            if (delBtn) {
-              controls.insertBefore(headerUploadBtn, delBtn);
-            } else {
-              controls.appendChild(headerUploadBtn);
-            }
-          }
-        }
-      } else {
-        if (headerUploadBtn) headerUploadBtn.remove();
-        if (studioOpenBtn) studioOpenBtn.remove();
-      }
-    }
-  });
-}
 
 // Image Studio & Slide Layout Builder State & Handlers
 let activeStudioSection = null;
