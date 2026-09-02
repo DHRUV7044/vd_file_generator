@@ -1757,22 +1757,24 @@ body {
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: calc(100% - 24px);
+  height: calc(100% - 28px);
   box-sizing: border-box;
+  transform-origin: center center !important;
+  transition: transform 0.05s ease-out;
+  order: 2;
 }
 
 .studio-item img {
-  max-width: 100%;
-  max-height: 100%;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   border-radius: 4px;
-  transform-origin: center center !important;
-  transition: transform 0.05s ease-out;
+  display: block;
 }
 
 .studio-item-title {
   width: 90%;
-  margin-top: 6px;
+  margin-bottom: 6px;
   font-size: 11px;
   font-weight: 700;
   text-align: center;
@@ -1783,6 +1785,7 @@ body {
   transform: none !important;
   position: relative;
   z-index: 10;
+  order: 1;
 }
 
 .studio-item-actions {

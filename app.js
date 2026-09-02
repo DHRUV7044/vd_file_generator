@@ -1591,8 +1591,8 @@ function renderStudioCanvas() {
             <button class="studio-item-btn danger" onclick="deleteStudioItem('${item.id}')" title="Delete">🗑</button>
           </div>
           <div class="studio-item-title" contenteditable="true" oninput="updateStudioItemTitle('${item.id}', this)">${defaultTitle}</div>
-          <div class="studio-img-wrapper">
-            <img src="${item.src}" style="transform: rotate(${rotDeg}deg);">
+          <div class="studio-img-wrapper" style="transform: rotate(${rotDeg}deg);">
+            <img src="${item.src}">
           </div>
         `;
       }
@@ -1902,8 +1902,8 @@ function startStudioRotation(e, id) {
 
         const targetEl = document.querySelector(`.studio-item[data-id="${targetId}"]`);
         if (targetEl) {
-          const img = targetEl.querySelector('img');
-          if (img) img.style.transform = `rotate(${item.rotation}deg)`;
+          const wrapper = targetEl.querySelector('.studio-img-wrapper') || targetEl;
+          if (wrapper) wrapper.style.transform = `rotate(${item.rotation}deg)`;
         }
       }
     });
@@ -1942,8 +1942,8 @@ function rotateStudioSelected() {
       item.rotation = ((item.rotation || 0) + 90) % 360;
       const targetEl = document.querySelector(`.studio-item[data-id="${id}"]`);
       if (targetEl) {
-        const img = targetEl.querySelector('img');
-        if (img) img.style.transform = `rotate(${item.rotation}deg)`;
+        const wrapper = targetEl.querySelector('.studio-img-wrapper') || targetEl;
+        if (wrapper) wrapper.style.transform = `rotate(${item.rotation}deg)`;
       }
     }
   });
@@ -1962,8 +1962,8 @@ function resetStudioRotation() {
       item.rotation = 0;
       const targetEl = document.querySelector(`.studio-item[data-id="${id}"]`);
       if (targetEl) {
-        const img = targetEl.querySelector('img');
-        if (img) img.style.transform = `rotate(0deg)`;
+        const wrapper = targetEl.querySelector('.studio-img-wrapper') || targetEl;
+        if (wrapper) wrapper.style.transform = `rotate(0deg)`;
       }
     }
   });
