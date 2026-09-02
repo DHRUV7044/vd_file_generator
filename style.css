@@ -1875,8 +1875,7 @@ body {
 
 /* Object Selection Bounding Box & 8 Resize Handles */
 .studio-item.is-selected {
-  outline: 2px solid #3b82f6 !important;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+  /* Outer container handles selection state without secondary box outline */
 }
 
 .studio-selection-box {
