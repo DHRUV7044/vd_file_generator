@@ -1750,8 +1750,8 @@ function startStudioPointerDrag(e, targetId) {
       const newX = geo.x + deltaXMm;
       const newY = geo.y + deltaYMm;
 
-      item.x = Math.max(0, Math.min(210 - (item.width || 190), newX));
-      item.y = Math.max(0, Math.min(297 - (item.height || 120), newY));
+      item.x = newX;
+      item.y = newY;
 
       if (geo.element) {
         geo.element.style.left = `${item.x}mm`;
@@ -1818,7 +1818,7 @@ function startStudioResize(e, id, handleType) {
       newH = newW / aspectRatio;
     }
 
-    if (newW >= 15 && newH >= 15) {
+    if (newW >= 5 && newH >= 5) {
       item.width = newW;
       item.height = newH;
       item.x = newX;
@@ -1927,6 +1927,24 @@ function rotateStudioSelected() {
     const item = studioImagesData.find(x => x.id === id);
     if (item) {
       item.rotation = ((item.rotation || 0) + 90) % 360;
+      updateImageTransform(item);
+    }
+  });
+
+  renderStudioCanvas();
+  saveAllData();
+}
+
+function rotateStudioCCW() {
+  if (selectedStudioItemIds.size === 0) return;
+  saveHistoryState();
+
+  selectedStudioItemIds.forEach(id => {
+    const item = studioImagesData.find(x => x.id === id);
+    if (item) {
+      let newRot = ((item.rotation || 0) - 90) % 360;
+      if (newRot < 0) newRot += 360;
+      item.rotation = newRot;
       updateImageTransform(item);
     }
   });

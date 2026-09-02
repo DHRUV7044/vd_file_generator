@@ -1639,7 +1639,6 @@ body {
 .studio-a4-page-card {
   width: 210mm;
   height: 297mm;
-  max-height: 297mm;
   background: #ffffff;
   color: #0f172a;
   box-shadow: 0 15px 45px rgba(0,0,0,0.5);
@@ -1650,7 +1649,7 @@ body {
   gap: 8px;
   position: relative;
   border-radius: 4px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .studio-page-header-bar {
