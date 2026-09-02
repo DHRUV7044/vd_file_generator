@@ -2188,3 +2188,24 @@ body {
   to { transform: rotate(360deg); }
 }
 
+/* DOCX Export choice buttons */
+.docx-export-choice-btn {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  background: rgba(99, 102, 241, 0.07);
+  border: 1.5px solid rgba(99, 102, 241, 0.25);
+  border-radius: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.18s;
+  text-align: left;
+}
+
+.docx-export-choice-btn:hover {
+  background: rgba(99, 102, 241, 0.18);
+  border-color: #6366f1;
+}
+
+

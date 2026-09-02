@@ -3517,3 +3517,510 @@ loadAllData();
   }
 
 })(); // end DOCX import IIFE
+// ============================================================
+// DOCX EXPORT FEATURE
+// docx.js (MIT License) — https://github.com/dolanmiu/docx
+// Exports the live report DOM as a real, editable .docx file.
+// ============================================================
+(function() {
+  var exportBtn    = document.getElementById('export-docx-btn');
+  var exportModal  = document.getElementById('docx-export-modal');
+  var exportAllBtn = document.getElementById('docx-export-all-btn');
+  var exportCancel = document.getElementById('docx-export-cancel');
+  var statusEl     = document.getElementById('docx-export-status');
+
+  exportBtn.addEventListener('click', function() {
+    if (isMathRendered) {
+      alert('Please turn off "Preview Math" before exporting.');
+      return;
+    }
+    statusEl.style.display = 'none';
+    exportModal.style.display = 'flex';
+  });
+
+  exportCancel.addEventListener('click', function() {
+    exportModal.style.display = 'none';
+  });
+
+  exportModal.addEventListener('click', function(e) {
+    if (e.target === exportModal) exportModal.style.display = 'none';
+  });
+
+  exportAllBtn.addEventListener('click', function() {
+    runDocxExport();
+  });
+
+  function setStatus(msg, isError) {
+    statusEl.textContent = msg;
+    statusEl.className = 'docx-modal-notice' + (isError ? ' is-error' : '');
+    statusEl.style.display = 'block';
+  }
+
+  function setExporting(on) {
+    exportAllBtn.disabled = on;
+    exportAllBtn.style.opacity = on ? '0.6' : '1';
+  }
+
+  function buildFilename() {
+    var expNum = (document.getElementById('exp-num-field').textContent || '').trim();
+    var raw    = expNum ? 'Experiment_' + expNum : 'VLSI_Lab_Record';
+    return raw.replace(/[^a-zA-Z0-9_\-]/g, '_') + '.docx';
+  }
+
+  function downloadBlob(blob, filename) {
+    var url = URL.createObjectURL(blob);
+    var a   = document.createElement('a');
+    a.href     = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(url); }, 5000);
+  }
+
+  // A4 in EMUs (914400 per inch; 1 mm = 36000 EMU)
+  var EMU_PER_MM = 36000;
+  var A4_W_EMU   = Math.round(210 * EMU_PER_MM);
+  var A4_H_EMU   = Math.round(297 * EMU_PER_MM);
+  var MARGIN_EMU = Math.round(25 * EMU_PER_MM);  // 25mm margin
+  var MAX_IMG_W  = A4_W_EMU - 2 * MARGIN_EMU;    // usable image width
+
+  function runDocxExport() {
+    if (typeof docx === 'undefined') {
+      setStatus('docx.js library not loaded. Please refresh the page.', true);
+      return;
+    }
+    setExporting(true);
+    setStatus('Building DOCX document…', false);
+
+    buildDocxBlob().then(function(blob) {
+      downloadBlob(blob, buildFilename());
+      exportModal.style.display = 'none';
+      setExporting(false);
+    }).catch(function(err) {
+      console.error('DOCX export error:', err);
+      setStatus('Export failed: ' + (err.message || String(err)), true);
+      setExporting(false);
+    });
+  }
+
+  function buildDocxBlob() {
+    var D        = docx;
+    var children = [];
+
+    // --- Experiment header ---
+    var expNum  = (document.getElementById('exp-num-field').textContent || '').trim();
+    var expDate = (document.getElementById('exp-date-field').textContent || '').trim();
+
+    if (expDate || expNum) {
+      var hParts = [];
+      if (expDate) hParts.push(new D.TextRun({ text: 'DATE: ' + expDate, bold: true }));
+      if (expDate && expNum) hParts.push(new D.TextRun({ text: '          ' }));
+      if (expNum)  hParts.push(new D.TextRun({ text: 'EXPERIMENT NO.: ' + expNum, bold: true }));
+      children.push(new D.Paragraph({ children: hParts, spacing: { after: 200 } }));
+    }
+
+    // --- Sections ---
+    var sections     = Array.from(document.querySelectorAll('#sections-container .report-section'));
+    var imagePromises = [];
+
+    // First pass: collect image data promises
+    sections.forEach(function(section) {
+      var imgs = section.querySelectorAll('.image-container .pasted-image');
+      imgs.forEach(function(img) {
+        imagePromises.push(getImageData(img));
+      });
+    });
+
+    // Resolve all images first, then build document
+    return Promise.all(imagePromises).then(function(allImgData) {
+      // Build a map from img element → resolved data
+      var imgMap = new Map();
+      var imgIdx = 0;
+      sections.forEach(function(section) {
+        var imgs = section.querySelectorAll('.image-container .pasted-image');
+        imgs.forEach(function(img) {
+          imgMap.set(img, allImgData[imgIdx++]);
+        });
+      });
+
+      // Second pass: build doc children
+      sections.forEach(function(section, si) {
+        var hasPageBreak = section.getAttribute('data-page-break') === 'true';
+        var numSpan      = section.querySelector('.section-number');
+        var titleSpan    = section.querySelector('.section-title-text');
+        var numText      = numSpan  ? numSpan.textContent.trim()  : '';
+        var titleText    = titleSpan ? titleSpan.textContent.trim() : '';
+
+        // Section heading paragraph
+        var titlePara = new D.Paragraph({
+          pageBreakBefore: (hasPageBreak && si > 0),
+          children: [new D.TextRun({
+            text: numText + titleText,
+            bold: true,
+            size: 26,
+            allCaps: true
+          })],
+          border: {
+            bottom: { style: D.BorderStyle.SINGLE, size: 6, color: '000000' }
+          },
+          spacing: { before: si === 0 ? 0 : 280, after: 120 }
+        });
+        children.push(titlePara);
+
+        // Section body
+        var body = section.querySelector('.section-body');
+        if (body) {
+          convertBodyToDocxSync(body, D, imgMap, children);
+        }
+      });
+
+      if (children.length === 0) {
+        children.push(new D.Paragraph({ children: [] }));
+      }
+
+      var doc = new D.Document({
+        sections: [{
+          properties: {
+            page: {
+              size: {
+                width:       A4_W_EMU,
+                height:      A4_H_EMU,
+                orientation: D.PageOrientation.PORTRAIT
+              },
+              margin: {
+                top:    MARGIN_EMU,
+                right:  MARGIN_EMU,
+                bottom: MARGIN_EMU,
+                left:   MARGIN_EMU
+              }
+            }
+          },
+          children: children
+        }]
+      });
+
+      return D.Packer.toBlob(doc);
+    });
+  }
+
+  // --- Body converter (synchronous after images are pre-fetched) ---
+  function convertBodyToDocxSync(bodyEl, D, imgMap, out) {
+    var blocks = Array.from(bodyEl.children);
+
+    blocks.forEach(function(block) {
+      // Skip editor-only UI
+      if (block.classList.contains('section-element-bar') ||
+          block.classList.contains('block-controls-row') ||
+          block.classList.contains('image-section-action-bar') ||
+          block.classList.contains('section-controls')) return;
+
+      // Table container
+      if (block.classList.contains('table-container') ||
+          (block.classList.contains('sub-block-wrapper') && block.querySelector('.lab-table'))) {
+        var tableEl = block.querySelector('.lab-table');
+        if (tableEl) {
+          var cap = block.querySelector('.table-caption');
+          if (cap && cap.textContent.trim()) {
+            out.push(makeTextPara(D, cap.textContent.trim(), { italic: true, size: 20 }));
+          }
+          out.push(convertTableToDocx(tableEl, D));
+          out.push(new D.Paragraph({ children: [], spacing: { after: 100 } }));
+        }
+        return;
+      }
+
+      // Image gallery
+      if (block.classList.contains('images-space-wrapper') ||
+          block.classList.contains('images-space')) {
+        block.querySelectorAll('.image-container').forEach(function(c) {
+          convertImageContainerSync(c, D, imgMap, out);
+        });
+        return;
+      }
+
+      // Writing space
+      if (block.classList.contains('writing-space')) {
+        // Inner table?
+        var innerTable = block.querySelector('.lab-table');
+        if (innerTable) {
+          out.push(convertTableToDocx(innerTable, D));
+          return;
+        }
+        // Inner images?
+        var innerImgs = block.querySelectorAll('.image-container');
+        if (innerImgs.length > 0) {
+          innerImgs.forEach(function(c) {
+            convertImageContainerSync(c, D, imgMap, out);
+          });
+          return;
+        }
+        // Text
+        convertHtmlToDocxParas(block, D, out);
+        return;
+      }
+
+      // Sub-block wrapper (text-block, etc.)
+      if (block.classList.contains('sub-block-wrapper')) {
+        var ws = block.querySelector('.writing-space');
+        if (ws) convertHtmlToDocxParas(ws, D, out);
+        block.querySelectorAll('.image-container').forEach(function(c) {
+          convertImageContainerSync(c, D, imgMap, out);
+        });
+        return;
+      }
+    });
+  }
+
+  // --- HTML → Docx paragraphs ---
+  function convertHtmlToDocxParas(el, D, out) {
+    var text = (el.innerText || el.textContent || '').trim();
+    if (!text) return;
+
+    var tmp = document.createElement('div');
+    tmp.innerHTML = el.innerHTML;
+
+    var blockTagSet = new Set(['p','div','h1','h2','h3','h4','h5','h6','ul','ol','li']);
+    var hasBlocks   = Array.from(tmp.children).some(function(c) {
+      return blockTagSet.has(c.tagName.toLowerCase());
+    });
+
+    if (hasBlocks) {
+      Array.from(tmp.children).forEach(function(child) {
+        var tag = child.tagName.toLowerCase();
+        if (tag === 'h1' || tag === 'h2' || tag === 'h3') {
+          out.push(new D.Paragraph({
+            children: [new D.TextRun({ text: child.textContent.trim(), bold: true, size: 24 })],
+            spacing: { before: 120, after: 80 }
+          }));
+        } else if (tag === 'h4' || tag === 'h5' || tag === 'h6') {
+          out.push(new D.Paragraph({
+            children: [new D.TextRun({ text: child.textContent.trim(), bold: true, size: 22 })],
+            spacing: { before: 80, after: 60 }
+          }));
+        } else if (tag === 'ul' || tag === 'ol') {
+          var items = child.querySelectorAll('li');
+          items.forEach(function(li, i) {
+            var prefix = (tag === 'ol') ? (i+1) + '. ' : '\u2022 ';
+            out.push(new D.Paragraph({
+              children: [new D.TextRun({ text: prefix + li.textContent.trim() })],
+              indent: { left: 360 },
+              spacing: { after: 40 }
+            }));
+          });
+        } else {
+          var runs = htmlNodeToRuns(child, D);
+          if (runs.length > 0) {
+            out.push(new D.Paragraph({ children: runs, spacing: { after: 80 } }));
+          } else {
+            var t = child.textContent.trim();
+            if (t) out.push(makeTextPara(D, t));
+          }
+        }
+      });
+    } else {
+      // Plain text — split lines
+      text.split('\n').forEach(function(line) {
+        var l = line.trim();
+        if (l) out.push(makeTextPara(D, l));
+      });
+    }
+  }
+
+  function htmlNodeToRuns(el, D) {
+    var runs = [];
+    el.childNodes.forEach(function(node) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        var t = node.textContent;
+        if (t) runs.push(new D.TextRun({ text: t }));
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        var tag  = node.tagName.toLowerCase();
+        var text = node.textContent;
+        if (!text) return;
+        var opts = { text: text };
+        if (tag === 'strong' || tag === 'b') opts.bold = true;
+        if (tag === 'em'     || tag === 'i') opts.italics = true;
+        if (tag === 'u') opts.underline = {};
+        if (tag === 'sup') opts.superScript = true;
+        if (tag === 'sub') opts.subScript = true;
+        if (tag === 's')   opts.strike = true;
+        runs.push(new D.TextRun(opts));
+      }
+    });
+    return runs;
+  }
+
+  function makeTextPara(D, text, opts) {
+    var runOpts = Object.assign({ text: text }, opts || {});
+    return new D.Paragraph({
+      children: [new D.TextRun(runOpts)],
+      spacing: { after: 80 }
+    });
+  }
+
+  // --- Table → DOCX table ---
+  function convertTableToDocx(tableEl, D) {
+    var rows = Array.from(tableEl.querySelectorAll('tr'));
+    var docxRows = [];
+
+    rows.forEach(function(row) {
+      if (row.closest('.table-actions-row')) return;
+      var cells = Array.from(row.querySelectorAll('th, td')).filter(function(c) {
+        return !c.classList.contains('row-actions-cell') && !c.classList.contains('table-actions-header');
+      });
+      if (cells.length === 0) return;
+
+      var docxCells = cells.map(function(cell) {
+        var isHdr = cell.tagName.toLowerCase() === 'th';
+        var txt   = (cell.innerText || cell.textContent || '').trim();
+        return new D.TableCell({
+          children: [new D.Paragraph({
+            children: [new D.TextRun({ text: txt, bold: isHdr, size: 20 })]
+          })],
+          shading: isHdr ? { fill: 'D0D5DD' } : undefined,
+          margins: { top: 60, bottom: 60, left: 120, right: 120 }
+        });
+      });
+
+      docxRows.push(new D.TableRow({ children: docxCells }));
+    });
+
+    if (docxRows.length === 0) {
+      return new D.Paragraph({ children: [] });
+    }
+
+    return new D.Table({
+      rows: docxRows,
+      width: { size: 100, type: D.WidthType.PERCENTAGE },
+      borders: {
+        top:     { style: D.BorderStyle.SINGLE, size: 4, color: '888888' },
+        bottom:  { style: D.BorderStyle.SINGLE, size: 4, color: '888888' },
+        left:    { style: D.BorderStyle.SINGLE, size: 4, color: '888888' },
+        right:   { style: D.BorderStyle.SINGLE, size: 4, color: '888888' },
+        insideH: { style: D.BorderStyle.SINGLE, size: 4, color: 'AAAAAA' },
+        insideV: { style: D.BorderStyle.SINGLE, size: 4, color: 'AAAAAA' }
+      }
+    });
+  }
+
+  // --- Image container → DOCX image ---
+  function convertImageContainerSync(container, D, imgMap, out) {
+    var numSpan = container.querySelector('.img-number');
+    var capSpan = container.querySelector('.img-caption');
+    var figNum  = numSpan ? numSpan.textContent.trim() : '';
+    var capText = capSpan ? capSpan.textContent.trim() : '';
+    var fullCap = (figNum + capText).trim();
+
+    if (fullCap) {
+      out.push(makeTextPara(D, fullCap, { italic: true, size: 20 }));
+    }
+
+    var imgEl = container.querySelector('.pasted-image');
+    if (!imgEl) {
+      out.push(new D.Paragraph({ children: [], spacing: { after: 100 } }));
+      return;
+    }
+
+    var imgData = imgMap.get(imgEl);
+    if (!imgData || !imgData.buffer) {
+      out.push(makeTextPara(D, '[Image could not be exported]'));
+      return;
+    }
+
+    var rotation = parseInt(container.getAttribute('data-rotation') || '0', 10);
+
+    // Determine display dimensions
+    var PX_TO_PT = 0.75;   // 1px = 0.75pt at 96dpi
+    var dispW    = container.offsetWidth  || imgEl.offsetWidth  || 400;
+    var dispH    = container.offsetHeight || imgEl.offsetHeight || 300;
+
+    // Max width in points (1pt = 12700 EMU; A4 usable = MAX_IMG_W EMU)
+    var MAX_PT  = MAX_IMG_W / 12700;
+    var ptW     = dispW * PX_TO_PT;
+    var ptH     = dispH * PX_TO_PT;
+
+    if (ptW > MAX_PT) {
+      var scale = MAX_PT / ptW;
+      ptW = MAX_PT;
+      ptH = Math.round(ptH * scale);
+    }
+
+    // Minimum 50pt
+    ptW = Math.max(ptW, 50);
+    ptH = Math.max(ptH, 38);
+
+    try {
+      var imgType = imgData.mimeType.includes('png') ? 'png' : 'jpeg';
+      var imgRun  = new D.ImageRun({
+        data: imgData.buffer,
+        transformation: {
+          width:    Math.round(ptW),
+          height:   Math.round(ptH),
+          rotation: rotation
+        },
+        type: imgType
+      });
+
+      out.push(new D.Paragraph({
+        children:  [imgRun],
+        spacing:   { before: 60, after: 120 },
+        alignment: D.AlignmentType.CENTER
+      }));
+    } catch(e) {
+      console.warn('Image export error:', e);
+      out.push(makeTextPara(D, '[Image could not be embedded: ' + e.message + ']'));
+    }
+  }
+
+  // --- Fetch image data (supports data URIs and blob URLs) ---
+  function getImageData(imgEl) {
+    var src = imgEl.src || imgEl.getAttribute('src') || '';
+
+    // Data URI
+    if (src.startsWith('data:')) {
+      return Promise.resolve(dataUriToBuffer(src, imgEl));
+    }
+
+    // Blob URL or other URL — fetch it
+    return fetch(src).then(function(resp) {
+      return resp.arrayBuffer().then(function(buf) {
+        var ct = resp.headers.get('content-type') || 'image/jpeg';
+        return { buffer: buf, mimeType: ct, natW: imgEl.naturalWidth, natH: imgEl.naturalHeight };
+      });
+    }).catch(function(err) {
+      // If fetch fails (e.g. tainted canvas), try drawing to canvas
+      return canvasToBuffer(imgEl);
+    });
+  }
+
+  function dataUriToBuffer(src, imgEl) {
+    var mime   = src.split(';')[0].split(':')[1] || 'image/jpeg';
+    var b64    = src.split(',')[1] || '';
+    var binary = atob(b64);
+    var buf    = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i++) buf[i] = binary.charCodeAt(i);
+    return {
+      buffer:   buf.buffer,
+      mimeType: mime,
+      natW:     imgEl.naturalWidth,
+      natH:     imgEl.naturalHeight
+    };
+  }
+
+  function canvasToBuffer(imgEl) {
+    return new Promise(function(resolve) {
+      try {
+        var c   = document.createElement('canvas');
+        c.width  = imgEl.naturalWidth  || imgEl.offsetWidth  || 400;
+        c.height = imgEl.naturalHeight || imgEl.offsetHeight || 300;
+        var ctx = c.getContext('2d');
+        ctx.drawImage(imgEl, 0, 0);
+        var dataUrl = c.toDataURL('image/png');
+        resolve(dataUriToBuffer(dataUrl, imgEl));
+      } catch(e) {
+        resolve({ buffer: null, mimeType: 'image/png', natW: 0, natH: 0 });
+      }
+    });
+  }
+
+})(); // end DOCX export IIFE
