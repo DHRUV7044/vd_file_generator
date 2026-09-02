@@ -1158,7 +1158,47 @@ function ensureUploadButtonsOnAllSections() {
     }
   });
 
-  // 3. For Image Sections, ensure header controls include 📷 Upload Image button, and remove from non-image section headers
+// Toggle Section Page Break (Start Section on Next Page when printing)
+function toggleSectionPageBreak(btn) {
+  if (isMathRendered) return;
+  const section = btn.closest('.report-section');
+  if (!section) return;
+
+  saveHistoryState();
+
+  const isBreakActive = section.getAttribute('data-page-break') === 'true';
+  const newBreakState = !isBreakActive;
+
+  section.setAttribute('data-page-break', newBreakState.toString());
+
+  if (newBreakState) {
+    section.classList.add('section-page-break');
+    btn.classList.add('active');
+    btn.setAttribute('title', 'Page break ACTIVE: Section starts on a fresh new page when printing');
+    
+    let headerRow = section.querySelector('.section-header-row');
+    if (headerRow && !headerRow.querySelector('.sec-break-indicator')) {
+      const badge = document.createElement('span');
+      badge.className = 'sec-break-indicator';
+      badge.innerHTML = '📄 Starts on Next Page';
+      const titleContainer = headerRow.querySelector('.section-title-container');
+      if (titleContainer) {
+        titleContainer.appendChild(badge);
+      }
+    }
+  } else {
+    section.classList.remove('section-page-break');
+    btn.classList.remove('active');
+    btn.setAttribute('title', 'Toggle: Start this section on a fresh new A4 page when printing');
+
+    let badge = section.querySelector('.sec-break-indicator');
+    if (badge) badge.remove();
+  }
+
+  saveAllData();
+}
+
+  // 3. For all Sections, ensure header controls include 📄 Next Page button, and 📷 Upload Image button for Image Sections
   const sections = document.querySelectorAll('.report-section');
   sections.forEach(sec => {
     const titleText = sec.querySelector('.section-title-text');
@@ -1168,6 +1208,38 @@ function ensureUploadButtonsOnAllSections() {
 
     let controls = sec.querySelector('.section-controls');
     if (controls) {
+      // Ensure 📄 Next Page button exists
+      let breakBtn = controls.querySelector('.section-page-break-btn');
+      if (!breakBtn) {
+        breakBtn = document.createElement('button');
+        breakBtn.className = 'section-control-btn section-page-break-btn';
+        breakBtn.title = 'Toggle: Start this section on a fresh new A4 page when printing';
+        breakBtn.setAttribute('onclick', 'toggleSectionPageBreak(this)');
+        breakBtn.innerHTML = '📄 Next Page';
+        const delBtn = controls.querySelector('.delete');
+        if (delBtn) {
+          controls.insertBefore(breakBtn, delBtn);
+        } else {
+          controls.appendChild(breakBtn);
+        }
+      }
+
+      // Re-apply section page break active state if stored
+      if (sec.getAttribute('data-page-break') === 'true') {
+        sec.classList.add('section-page-break');
+        breakBtn.classList.add('active');
+        let headerRow = sec.querySelector('.section-header-row');
+        if (headerRow && !headerRow.querySelector('.sec-break-indicator')) {
+          const badge = document.createElement('span');
+          badge.className = 'sec-break-indicator';
+          badge.innerHTML = '📄 Starts on Next Page';
+          const titleContainer = headerRow.querySelector('.section-title-container');
+          if (titleContainer) {
+            titleContainer.appendChild(badge);
+          }
+        }
+      }
+
       let headerUploadBtn = controls.querySelector('.upload-img-btn');
       if (isImageSec) {
         if (!headerUploadBtn) {
@@ -1176,11 +1248,15 @@ function ensureUploadButtonsOnAllSections() {
           headerUploadBtn.title = 'Upload Image to Section';
           headerUploadBtn.setAttribute('onclick', 'triggerImageFileUpload(this)');
           headerUploadBtn.innerHTML = '📷 Upload Image';
-          const delBtn = controls.querySelector('.delete');
-          if (delBtn) {
-            controls.insertBefore(headerUploadBtn, delBtn);
+          if (breakBtn) {
+            controls.insertBefore(headerUploadBtn, breakBtn);
           } else {
-            controls.appendChild(headerUploadBtn);
+            const delBtn = controls.querySelector('.delete');
+            if (delBtn) {
+              controls.insertBefore(headerUploadBtn, delBtn);
+            } else {
+              controls.appendChild(headerUploadBtn);
+            }
           }
         }
       } else {

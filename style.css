@@ -285,6 +285,40 @@ body {
   border-color: var(--primary, #6366f1);
 }
 
+.section-control-btn.section-page-break-btn {
+  width: auto;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #f8fafc;
+  color: #475569;
+  border-color: #cbd5e1;
+}
+
+.section-control-btn.section-page-break-btn:hover {
+  background: #f1f5f9;
+  color: var(--primary, #6366f1);
+  border-color: var(--primary, #6366f1);
+}
+
+.section-control-btn.section-page-break-btn.active {
+  background: var(--primary, #6366f1) !important;
+  color: #ffffff !important;
+  border-color: var(--primary, #6366f1) !important;
+}
+
+.sec-break-indicator {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--primary, #6366f1);
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+  user-select: none;
+}
+
 .btn-sec-add.btn-sec-upload {
   background: rgba(99, 102, 241, 0.08);
   color: var(--primary, #6366f1);
@@ -1381,8 +1415,16 @@ body {
     content: "" !important;
   }
 
-  .row-actions-cell, .table-actions-header, .table-actions-row, .delete-col-btn, .delete-image-btn, .table-actions-column, .page-break-indicator {
+  .row-actions-cell, .table-actions-header, .table-actions-row, .delete-col-btn, .delete-image-btn, .table-actions-column, .page-break-indicator, .sec-break-indicator {
     display: none !important;
+  }
+
+  /* Section Page Break Print Rule (Force Section to Start on Next Page) */
+  .report-section.section-page-break {
+    page-break-before: always !important;
+    break-before: page !important;
+    margin-top: 0 !important;
+    padding-top: 10mm !important;
   }
 
   /* Per-Image Page Break Print Rule & Page Alignment */
