@@ -1304,6 +1304,8 @@ function openImageStudio(btn) {
 
   // Extract images from section with geometry
   const containers = section.querySelectorAll('.image-container');
+  let hasStoredPageIndex = false;
+
   containers.forEach(c => {
     const img = c.querySelector('.pasted-image');
     const captionSpan = c.querySelector('.img-caption');
@@ -1314,6 +1316,10 @@ function openImageStudio(btn) {
     const hVal = c.getAttribute('data-height');
     const zVal = c.getAttribute('data-zindex');
     const pVal = c.getAttribute('data-pageindex');
+
+    if (pVal !== null && pVal !== undefined && pVal !== '') {
+      hasStoredPageIndex = true;
+    }
 
     if (img) {
       studioImagesData.push({
@@ -1326,7 +1332,7 @@ function openImageStudio(btn) {
         width: wVal ? parseFloat(wVal) : 190,
         height: hVal ? parseFloat(hVal) : 120,
         zIndex: zVal ? parseInt(zVal, 10) : 1,
-        pageIndex: pVal ? parseInt(pVal, 10) : 0
+        pageIndex: pVal !== null && pVal !== undefined && pVal !== '' ? parseInt(pVal, 10) : 0
       });
     }
   });
@@ -1338,7 +1344,20 @@ function openImageStudio(btn) {
   const modal = document.getElementById('image-studio-modal');
   if (modal) {
     modal.style.display = 'flex';
-    setStudioImagesPerPage(studioImagesPerPage);
+    document.querySelectorAll('.studio-preset-btn').forEach(btn => {
+      const gridVal = btn.getAttribute('data-grid');
+      if (gridVal == studioImagesPerPage) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    if (!hasStoredPageIndex) {
+      reflowStudioPagination();
+    } else {
+      renderStudioCanvas();
+    }
   }
 }
 
@@ -1358,6 +1377,33 @@ function setStudioImagesPerPage(count) {
       btn.classList.remove('active');
     }
   });
+  reflowStudioPagination();
+}
+
+function reflowStudioPagination() {
+  const count = studioImagesPerPage;
+  let capacityPerPage = parseInt(count, 10);
+  if (isNaN(capacityPerPage) || capacityPerPage < 1) {
+    capacityPerPage = 2; // Default 2 images per page for freeform or unassigned
+  }
+
+  const numImages = studioImagesData.length;
+  const numPagesNeeded = Math.max(1, Math.ceil(numImages / capacityPerPage));
+
+  // Re-build studioPagesList cleanly matching required pages
+  studioPagesList = [];
+  for (let p = 0; p < numPagesNeeded; p++) {
+    studioPagesList.push({
+      id: `page-${p + 1}`,
+      layout: count
+    });
+  }
+
+  // Automatically assign pageIndex to images based on layout preset
+  studioImagesData.forEach((img, idx) => {
+    img.pageIndex = Math.floor(idx / capacityPerPage);
+  });
+
   renderStudioCanvas();
 }
 
