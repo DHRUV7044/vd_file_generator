@@ -1159,9 +1159,18 @@ function ensureUploadButtonsOnAllSections() {
   });
 
 // Toggle Section Page Break (Start Section on Next Page when printing)
-function toggleSectionPageBreak(btn) {
-  if (isMathRendered) return;
-  const section = btn.closest('.report-section');
+function toggleSectionPageBreak(btnOrId) {
+  let btn = null;
+  let section = null;
+
+  if (typeof btnOrId === 'string') {
+    section = document.getElementById(btnOrId);
+    if (section) btn = section.querySelector('.section-page-break-btn');
+  } else if (btnOrId instanceof HTMLElement) {
+    btn = btnOrId.closest('.section-page-break-btn') || btnOrId;
+    section = btn.closest('.report-section');
+  }
+
   if (!section) return;
 
   saveHistoryState();
@@ -1171,11 +1180,15 @@ function toggleSectionPageBreak(btn) {
 
   section.setAttribute('data-page-break', newBreakState.toString());
 
+  const targetBtn = btn || section.querySelector('.section-page-break-btn');
+
   if (newBreakState) {
     section.classList.add('section-page-break');
-    btn.classList.add('active');
-    btn.setAttribute('title', 'Page break ACTIVE: Section starts on a fresh new page when printing');
-    
+    if (targetBtn) {
+      targetBtn.classList.add('active');
+      targetBtn.innerHTML = '📄 Next Page (Active)';
+      targetBtn.setAttribute('title', 'Page break ACTIVE: Section starts on a fresh new page when printing');
+    }
     let headerRow = section.querySelector('.section-header-row');
     if (headerRow && !headerRow.querySelector('.sec-break-indicator')) {
       const badge = document.createElement('span');
@@ -1188,9 +1201,11 @@ function toggleSectionPageBreak(btn) {
     }
   } else {
     section.classList.remove('section-page-break');
-    btn.classList.remove('active');
-    btn.setAttribute('title', 'Toggle: Start this section on a fresh new A4 page when printing');
-
+    if (targetBtn) {
+      targetBtn.classList.remove('active');
+      targetBtn.innerHTML = '📄 Next Page';
+      targetBtn.setAttribute('title', 'Toggle: Start this section on a fresh new A4 page when printing');
+    }
     let badge = section.querySelector('.sec-break-indicator');
     if (badge) badge.remove();
   }
@@ -1228,6 +1243,7 @@ function toggleSectionPageBreak(btn) {
       if (sec.getAttribute('data-page-break') === 'true') {
         sec.classList.add('section-page-break');
         breakBtn.classList.add('active');
+        breakBtn.innerHTML = '📄 Next Page (Active)';
         let headerRow = sec.querySelector('.section-header-row');
         if (headerRow && !headerRow.querySelector('.sec-break-indicator')) {
           const badge = document.createElement('span');

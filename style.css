@@ -319,6 +319,29 @@ body {
   user-select: none;
 }
 
+/* Screen Editor Preview for Section Page Break */
+.report-section.section-page-break {
+  margin-top: 2.5rem !important;
+  border-top: 2px dashed var(--primary, #6366f1) !important;
+  padding-top: 1rem !important;
+  position: relative;
+}
+
+.report-section.section-page-break::before {
+  content: "✂ PAGE BREAK — Starts on New Page";
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--primary, #6366f1);
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px dashed rgba(99, 102, 241, 0.4);
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
 .btn-sec-add.btn-sec-upload {
   background: rgba(99, 102, 241, 0.08);
   color: var(--primary, #6366f1);
@@ -1435,6 +1458,11 @@ body {
     break-before: page !important;
     margin-top: 0 !important;
     padding-top: 10mm !important;
+    border-top: none !important;
+  }
+
+  .report-section.section-page-break::before {
+    display: none !important;
   }
 
   /* First image in section MUST NOT force page break before itself so section title & image stay on same page */
