@@ -1672,8 +1672,8 @@ function ensureStudioSelectionBox(itemEl, id) {
   const box = document.createElement('div');
   box.className = 'studio-selection-box';
 
-  // Append 8 Handles
-  ['nw', 'n', 'ne', 'w', 'e', 'sw', 's', 'se'].forEach(handleType => {
+  // Append 4 Corner Handles
+  ['nw', 'ne', 'sw', 'se'].forEach(handleType => {
     const h = document.createElement('div');
     h.className = `studio-handle studio-handle-${handleType}`;
     h.setAttribute('data-handle', handleType);
@@ -1682,15 +1682,12 @@ function ensureStudioSelectionBox(itemEl, id) {
     box.appendChild(h);
   });
 
-  // Rotation Knob
-  const rotLine = document.createElement('div');
-  rotLine.className = 'studio-rotate-line';
+  // Top Rotation Knob
   const rotKnob = document.createElement('div');
   rotKnob.className = 'studio-rotate-knob';
   rotKnob.setAttribute('title', 'Drag to rotate (Hold Shift to snap 15°)');
   rotKnob.addEventListener('pointerdown', (e) => startStudioRotation(e, id));
 
-  box.appendChild(rotLine);
   box.appendChild(rotKnob);
   wrapper.appendChild(box);
 }
@@ -1737,25 +1734,8 @@ function startStudioPointerDrag(e, targetId) {
       const item = studioImagesData.find(x => x.id === geo.id);
       if (!item) return;
 
-      let newX = geo.x + deltaXMm;
-      let newY = geo.y + deltaYMm;
-
-      const snapTolerance = 3;
-      const snapLinesContainer = getOrCreateSnapGuidesContainer(geo.element);
-
-      if (Math.abs(newX + (item.width || 190) / 2 - 105) < snapTolerance) {
-        newX = 105 - (item.width || 190) / 2;
-        showSnapGuide(snapLinesContainer, 'y', '105mm');
-      } else {
-        hideSnapGuide(snapLinesContainer, 'y');
-      }
-
-      if (Math.abs(newY + (item.height || 120) / 2 - 148.5) < snapTolerance) {
-        newY = 148.5 - (item.height || 120) / 2;
-        showSnapGuide(snapLinesContainer, 'x', '148.5mm');
-      } else {
-        hideSnapGuide(snapLinesContainer, 'x');
-      }
+      const newX = geo.x + deltaXMm;
+      const newY = geo.y + deltaYMm;
 
       item.x = Math.max(0, Math.min(210 - (item.width || 190), newX));
       item.y = Math.max(0, Math.min(297 - (item.height || 120), newY));
@@ -1770,7 +1750,6 @@ function startStudioPointerDrag(e, targetId) {
   function onPointerUp() {
     window.removeEventListener('pointermove', onPointerMove);
     window.removeEventListener('pointerup', onPointerUp);
-    clearSnapGuides();
     saveAllData();
   }
 
