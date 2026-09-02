@@ -735,11 +735,6 @@ function rotateImage(btn) {
   const img = container.querySelector('.pasted-image');
   if (img) {
     img.style.transform = `rotate(${newRot}deg)`;
-    if (newRot === 90 || newRot === 270) {
-      img.style.margin = '15px 0';
-    } else {
-      img.style.margin = '0';
-    }
   }
 
   saveAllData();

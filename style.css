@@ -826,6 +826,12 @@ body {
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), margin 0.25s ease;
 }
 
+.image-container[data-rotation="90"] .pasted-image,
+.image-container[data-rotation="270"] .pasted-image {
+  max-width: 75%;
+  margin: 35px auto !important;
+}
+
 .page-break-indicator {
   position: absolute;
   top: -9px;
@@ -1379,14 +1385,27 @@ body {
     display: none !important;
   }
 
-  /* Per-Image Page Break Print Rule */
+  /* Per-Image Page Break Print Rule & Page Alignment */
   .image-container.print-one-per-page {
     page-break-before: always !important;
     break-before: page !important;
     page-break-after: always !important;
     break-after: page !important;
     width: 100% !important;
-    margin-top: 15mm !important;
-    margin-bottom: 15mm !important;
+    min-height: 240mm !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Prevent 90deg / 270deg rotated images from overflowing vertical printable page bounds */
+  .image-container[data-rotation="90"] .pasted-image,
+  .image-container[data-rotation="270"] .pasted-image {
+    max-width: 140mm !important;
+    max-height: 180mm !important;
+    object-fit: contain !important;
   }
 }
