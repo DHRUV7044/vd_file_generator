@@ -1591,7 +1591,9 @@ function renderStudioCanvas() {
             <button class="studio-item-btn danger" onclick="deleteStudioItem('${item.id}')" title="Delete">🗑</button>
           </div>
           <div class="studio-item-title" contenteditable="true" oninput="updateStudioItemTitle('${item.id}', this)">${defaultTitle}</div>
-          <img src="${item.src}" style="transform: rotate(${rotDeg}deg);">
+          <div class="studio-img-wrapper">
+            <img src="${item.src}" style="transform: rotate(${rotDeg}deg);">
+          </div>
         `;
       }
 
@@ -1656,14 +1658,16 @@ function updateStudioSelectionUI() {
       ensureStudioSelectionBox(el, id);
     } else {
       el.classList.remove('is-selected');
-      const box = el.querySelector('.studio-selection-box');
+      const wrapper = el.querySelector('.studio-img-wrapper') || el;
+      const box = wrapper.querySelector('.studio-selection-box');
       if (box) box.remove();
     }
   });
 }
 
 function ensureStudioSelectionBox(itemEl, id) {
-  if (itemEl.querySelector('.studio-selection-box')) return;
+  const wrapper = itemEl.querySelector('.studio-img-wrapper') || itemEl;
+  if (wrapper.querySelector('.studio-selection-box')) return;
 
   const box = document.createElement('div');
   box.className = 'studio-selection-box';
@@ -1688,7 +1692,7 @@ function ensureStudioSelectionBox(itemEl, id) {
 
   box.appendChild(rotLine);
   box.appendChild(rotKnob);
-  itemEl.appendChild(box);
+  wrapper.appendChild(box);
 }
 
 // Pointer Drag Engine (Move selected items together with snapping)
