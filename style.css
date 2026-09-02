@@ -805,11 +805,40 @@ body {
   color: #d93025;
 }
 
+.img-bar-btn.toggle-page-break-btn.active {
+  background: #1a73e8 !important;
+  color: #ffffff !important;
+}
+
 .img-bar-divider {
   width: 1px;
   height: 14px;
   background: #dadce0;
   margin: 0 2px;
+}
+
+/* Image Element Transformation & Page Break Badge */
+.pasted-image {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  pointer-events: none;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), margin 0.25s ease;
+}
+
+.page-break-indicator {
+  position: absolute;
+  top: -9px;
+  left: 6px;
+  background: #1a73e8;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  z-index: 15;
+  box-shadow: 0 2px 6px rgba(26, 115, 232, 0.3);
+  user-select: none;
 }
 
 /* Drag State Indicator */
@@ -1346,7 +1375,18 @@ body {
     content: "" !important;
   }
 
-  .row-actions-cell, .table-actions-header, .table-actions-row, .delete-col-btn, .delete-image-btn, .table-actions-column {
+  .row-actions-cell, .table-actions-header, .table-actions-row, .delete-col-btn, .delete-image-btn, .table-actions-column, .page-break-indicator {
     display: none !important;
+  }
+
+  /* Per-Image Page Break Print Rule */
+  .image-container.print-one-per-page {
+    page-break-before: always !important;
+    break-before: page !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    width: 100% !important;
+    margin-top: 15mm !important;
+    margin-bottom: 15mm !important;
   }
 }

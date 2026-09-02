@@ -324,19 +324,23 @@ function migrateAndSanitizeHTML(htmlString) {
       }
     });
 
-    // Ensure floating contextual bar exists
-    if (!container.querySelector('.image-floating-bar')) {
-      const floatBar = document.createElement('div');
+    // Ensure floating contextual bar exists and has updated controls
+    let floatBar = container.querySelector('.image-floating-bar');
+    if (!floatBar) {
+      floatBar = document.createElement('div');
       floatBar.className = 'image-floating-bar';
-      floatBar.innerHTML = `
-        <button class="img-bar-btn" onclick="setImageSize(this, '50%')">50%</button>
-        <button class="img-bar-btn" onclick="setImageSize(this, '75%')">75%</button>
-        <button class="img-bar-btn" onclick="setImageSize(this, '100%')">100%</button>
-        <div class="img-bar-divider"></div>
-        <button class="img-bar-btn danger" onclick="deleteImageContainer(this)">🗑 Delete</button>
-      `;
       container.appendChild(floatBar);
     }
+    floatBar.innerHTML = `
+      <button class="img-bar-btn" onclick="setImageSize(this, '50%')">50%</button>
+      <button class="img-bar-btn" onclick="setImageSize(this, '75%')">75%</button>
+      <button class="img-bar-btn" onclick="setImageSize(this, '100%')">100%</button>
+      <div class="img-bar-divider"></div>
+      <button class="img-bar-btn" onclick="rotateImage(this)" title="Rotate image 90° clockwise">🔄 Rotate</button>
+      <button class="img-bar-btn toggle-page-break-btn" onclick="toggleImagePageBreak(this)" title="Print 1 image on dedicated A4 page">📄 1/Page</button>
+      <div class="img-bar-divider"></div>
+      <button class="img-bar-btn danger" onclick="deleteImageContainer(this)">🗑 Delete</button>
+    `;
   });
 
   // 7. Ensure images-space-wrapper has Upload / Add More Images button bar
@@ -669,6 +673,9 @@ function addImageToGallery(galleryElement, base64Data) {
     <button class="img-bar-btn" onclick="setImageSize(this, '75%')">75%</button>
     <button class="img-bar-btn" onclick="setImageSize(this, '100%')">100%</button>
     <div class="img-bar-divider"></div>
+    <button class="img-bar-btn" onclick="rotateImage(this)" title="Rotate image 90° clockwise">🔄 Rotate</button>
+    <button class="img-bar-btn toggle-page-break-btn" onclick="toggleImagePageBreak(this)" title="Print 1 image on dedicated A4 page">📄 1/Page</button>
+    <div class="img-bar-divider"></div>
     <button class="img-bar-btn danger" onclick="deleteImageContainer(this)">🗑 Delete</button>
   `;
   imgContainer.appendChild(floatBar);
@@ -683,6 +690,96 @@ function addImageToGallery(galleryElement, base64Data) {
 function bindImageContainerEvents(container) {
   makeImageResizable(container);
   makeImageDraggable(container);
+
+  // Restore rotation transform if stored in data-rotation
+  const currentRot = container.getAttribute('data-rotation');
+  if (currentRot) {
+    const img = container.querySelector('.pasted-image');
+    if (img) {
+      const rotDeg = parseInt(currentRot, 10);
+      img.style.transform = `rotate(${rotDeg}deg)`;
+      if (rotDeg === 90 || rotDeg === 270) {
+        img.style.margin = '15px 0';
+      }
+    }
+  }
+
+  // Restore per-image page break active state if stored
+  const isPageBreak = container.getAttribute('data-page-break') === 'true';
+  const pageBreakBtn = container.querySelector('.toggle-page-break-btn');
+  if (isPageBreak) {
+    container.classList.add('print-one-per-page');
+    if (pageBreakBtn) pageBreakBtn.classList.add('active');
+    let badge = container.querySelector('.page-break-indicator');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'page-break-indicator';
+      badge.innerHTML = '📄 1/Page Print';
+      container.appendChild(badge);
+    }
+  }
+}
+
+// Rotate image by 90 degrees clockwise per click
+function rotateImage(btn) {
+  if (isMathRendered) return;
+  const container = btn.closest('.image-container');
+  if (!container) return;
+
+  saveHistoryState();
+
+  let currentRot = parseInt(container.getAttribute('data-rotation') || '0', 10);
+  let newRot = (currentRot + 90) % 360;
+  container.setAttribute('data-rotation', newRot.toString());
+
+  const img = container.querySelector('.pasted-image');
+  if (img) {
+    img.style.transform = `rotate(${newRot}deg)`;
+    if (newRot === 90 || newRot === 270) {
+      img.style.margin = '15px 0';
+    } else {
+      img.style.margin = '0';
+    }
+  }
+
+  saveAllData();
+}
+
+// Toggle per-image "Print 1 Image Per Page" mode
+function toggleImagePageBreak(btn) {
+  if (isMathRendered) return;
+  const container = btn.closest('.image-container');
+  if (!container) return;
+
+  saveHistoryState();
+
+  const isBreakActive = container.getAttribute('data-page-break') === 'true';
+  const newBreakState = !isBreakActive;
+
+  container.setAttribute('data-page-break', newBreakState.toString());
+
+  if (newBreakState) {
+    container.classList.add('print-one-per-page');
+    btn.classList.add('active');
+    btn.setAttribute('title', 'Page break ACTIVE: Image prints on dedicated page');
+
+    let badge = container.querySelector('.page-break-indicator');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'page-break-indicator';
+      badge.innerHTML = '📄 1/Page Print';
+      container.appendChild(badge);
+    }
+  } else {
+    container.classList.remove('print-one-per-page');
+    btn.classList.remove('active');
+    btn.setAttribute('title', 'Print this image on its own dedicated A4 page');
+
+    let badge = container.querySelector('.page-break-indicator');
+    if (badge) badge.remove();
+  }
+
+  saveAllData();
 }
 
 // Proportional Corner Drag-to-Resize Handler (Google Docs / MS Word Style)
