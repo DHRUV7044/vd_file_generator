@@ -951,28 +951,38 @@ body {
 }
 
 /* Image Title/Caption Styling */
-.image-title-wrapper {
+.img-title-wrapper, .image-title-wrapper {
   width: 100%;
   text-align: center;
   margin-bottom: 8px;
-  font-family: "Times New Roman", Times, serif;
-  font-size: 11pt;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 
-.img-number {
-  font-weight: bold;
-  margin-right: 4px;
+.img-number-label, .img-number {
+  font-weight: 800;
+  color: #0f172a;
 }
 
 .img-caption {
   outline: none;
-  padding: 2px 4px;
-  border-bottom: 1px dashed #ccc;
-  min-width: 150px;
+  padding: 2px 6px;
+  border-bottom: 1px dashed #cbd5e1;
+  min-width: 120px;
   display: inline-block;
+  color: #1e293b;
 }
 
 .img-caption:focus {
+  border-bottom-color: var(--primary, #6366f1);
+  background: rgba(99, 102, 241, 0.05);
+}
   background-color: #f8fafc;
   border-bottom-color: var(--primary);
 }
@@ -1427,27 +1437,45 @@ body {
     padding-top: 10mm !important;
   }
 
-  /* Per-Image Page Break Print Rule & Page Alignment */
-  .image-container.print-one-per-page {
+  /* First image in section MUST NOT force page break before itself so section title & image stay on same page */
+  .report-section .image-container:first-child,
+  .images-space .image-container:first-child {
+    page-break-before: avoid !important;
+    break-before: avoid !important;
+  }
+
+  /* Subsequent 1-per-page images break page before */
+  .image-container.print-one-per-page:not(:first-child) {
     page-break-before: always !important;
     break-before: page !important;
-    page-break-after: always !important;
-    break-after: page !important;
+  }
+
+  /* Image Container & Full Page Area Utilization */
+  .image-container {
     width: 100% !important;
-    min-height: 240mm !important;
+    max-width: 100% !important;
+    margin: 10mm auto !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    justify-content: center !important;
-    margin: 0 auto !important;
-    box-sizing: border-box !important;
   }
 
-  /* Prevent 90deg / 270deg rotated images from overflowing vertical printable page bounds */
+  .image-container .pasted-image {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    object-fit: contain !important;
+  }
+
+  /* Rotated Image Scaling in Print Mode */
   .image-container[data-rotation="90"] .pasted-image,
   .image-container[data-rotation="270"] .pasted-image {
-    max-width: 140mm !important;
-    max-height: 180mm !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 220mm !important;
+    margin: 15mm auto !important;
     object-fit: contain !important;
   }
 }
