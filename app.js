@@ -1241,14 +1241,36 @@ function toggleSectionPageBreak(btn) {
       }
 
       let headerUploadBtn = controls.querySelector('.upload-img-btn');
+      let studioOpenBtn = controls.querySelector('.studio-open-btn');
+
       if (isImageSec) {
+        if (!studioOpenBtn) {
+          studioOpenBtn = document.createElement('button');
+          studioOpenBtn.className = 'section-control-btn studio-open-btn';
+          studioOpenBtn.title = 'Open Image Studio & Slide Builder';
+          studioOpenBtn.setAttribute('onclick', 'openImageStudio(this)');
+          studioOpenBtn.innerHTML = '🖼️ Studio';
+          if (breakBtn) {
+            controls.insertBefore(studioOpenBtn, breakBtn);
+          } else {
+            const delBtn = controls.querySelector('.delete');
+            if (delBtn) {
+              controls.insertBefore(studioOpenBtn, delBtn);
+            } else {
+              controls.appendChild(studioOpenBtn);
+            }
+          }
+        }
+
         if (!headerUploadBtn) {
           headerUploadBtn = document.createElement('button');
           headerUploadBtn.className = 'section-control-btn upload-img-btn';
           headerUploadBtn.title = 'Upload Image to Section';
           headerUploadBtn.setAttribute('onclick', 'triggerImageFileUpload(this)');
           headerUploadBtn.innerHTML = '📷 Upload Image';
-          if (breakBtn) {
+          if (studioOpenBtn) {
+            controls.insertBefore(headerUploadBtn, studioOpenBtn);
+          } else if (breakBtn) {
             controls.insertBefore(headerUploadBtn, breakBtn);
           } else {
             const delBtn = controls.querySelector('.delete');
@@ -1261,9 +1283,255 @@ function toggleSectionPageBreak(btn) {
         }
       } else {
         if (headerUploadBtn) headerUploadBtn.remove();
+        if (studioOpenBtn) studioOpenBtn.remove();
       }
     }
   });
+}
+
+// Image Studio & Slide Layout Builder State & Handlers
+let activeStudioSection = null;
+let studioImagesPerPage = 2;
+let studioImagesData = [];
+
+function openImageStudio(btn) {
+  if (isMathRendered) return;
+  const section = btn.closest('.report-section') || btn.closest('.sub-block-wrapper');
+  if (!section) return;
+
+  activeStudioSection = section;
+  studioImagesData = [];
+
+  // Extract images from section
+  const containers = section.querySelectorAll('.image-container');
+  containers.forEach(c => {
+    const img = c.querySelector('.pasted-image');
+    const captionSpan = c.querySelector('.img-caption');
+    const rot = c.getAttribute('data-rotation') || '0';
+    if (img) {
+      studioImagesData.push({
+        id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        src: img.src,
+        title: captionSpan ? captionSpan.textContent.trim() : '',
+        rotation: parseInt(rot, 10)
+      });
+    }
+  });
+
+  // Extract stored grid preset if any
+  const storedGrid = section.getAttribute('data-images-per-page');
+  studioImagesPerPage = storedGrid ? parseInt(storedGrid, 10) : (studioImagesData.length > 2 ? 4 : 2);
+
+  const modal = document.getElementById('image-studio-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+    setStudioImagesPerPage(studioImagesPerPage);
+  }
+}
+
+function closeImageStudio() {
+  const modal = document.getElementById('image-studio-modal');
+  if (modal) modal.style.display = 'none';
+  activeStudioSection = null;
+}
+
+function setStudioImagesPerPage(count) {
+  studioImagesPerPage = count;
+  document.querySelectorAll('.studio-preset-btn').forEach(btn => {
+    const gridVal = parseInt(btn.getAttribute('data-grid'), 10);
+    if (gridVal === count) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+  renderStudioCanvas();
+}
+
+function renderStudioCanvas() {
+  const canvas = document.getElementById('studio-a4-canvas');
+  if (!canvas) return;
+
+  canvas.innerHTML = '';
+
+  if (studioImagesData.length === 0) {
+    canvas.innerHTML = `
+      <div class="empty-dropzone-prompt" onclick="triggerStudioFileUpload()">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        <span>No images added yet. Click to Upload Images or Paste (Ctrl+V)</span>
+      </div>
+    `;
+    return;
+  }
+
+  // Chunk images per page based on studioImagesPerPage (1, 2, 3, or 4)
+  const pageSize = studioImagesPerPage;
+
+  for (let i = 0; i < studioImagesData.length; i += pageSize) {
+    const chunk = studioImagesData.slice(i, i + pageSize);
+
+    const gridContainer = document.createElement('div');
+    gridContainer.className = `studio-grid-container grid-layout-${pageSize}`;
+
+    chunk.forEach((item, idx) => {
+      const overallIndex = i + idx + 1;
+      const itemEl = document.createElement('div');
+      itemEl.className = 'studio-item';
+      itemEl.setAttribute('data-id', item.id);
+
+      const rotDeg = item.rotation || 0;
+      const defaultTitle = item.title ? item.title : `Figure ${overallIndex}:`;
+
+      itemEl.innerHTML = `
+        <div class="studio-item-actions">
+          <button class="studio-item-btn" onclick="rotateStudioItem('${item.id}')" title="Rotate 90°">🔄</button>
+          <button class="studio-item-btn danger" onclick="deleteStudioItem('${item.id}')" title="Delete">🗑</button>
+        </div>
+        <img src="${item.src}" style="transform: rotate(${rotDeg}deg);">
+        <div class="studio-item-title" contenteditable="true" oninput="updateStudioItemTitle('${item.id}', this)">${defaultTitle}</div>
+      `;
+      gridContainer.appendChild(itemEl);
+    });
+
+    canvas.appendChild(gridContainer);
+  }
+}
+
+function rotateStudioItem(id) {
+  const item = studioImagesData.find(x => x.id === id);
+  if (item) {
+    item.rotation = (item.rotation + 90) % 360;
+    renderStudioCanvas();
+  }
+}
+
+function deleteStudioItem(id) {
+  studioImagesData = studioImagesData.filter(x => x.id !== id);
+  renderStudioCanvas();
+}
+
+function updateStudioItemTitle(id, editable) {
+  const item = studioImagesData.find(x => x.id === id);
+  if (item) {
+    item.title = editable.textContent.trim();
+  }
+}
+
+function triggerStudioFileUpload() {
+  const input = document.getElementById('studio-file-input');
+  if (input) input.click();
+}
+
+function handleStudioFileUpload(input) {
+  const files = input.files;
+  if (!files || !files.length) return;
+
+  Array.from(files).forEach(file => {
+    if (file.type.indexOf('image') === 0) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        studioImagesData.push({
+          id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+          src: e.target.result,
+          title: '',
+          rotation: 0
+        });
+        renderStudioCanvas();
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  input.value = '';
+}
+
+function applyStudioToSection() {
+  if (!activeStudioSection) return;
+
+  saveHistoryState();
+
+  activeStudioSection.setAttribute('data-images-per-page', studioImagesPerPage.toString());
+  
+  let gallery = activeStudioSection.querySelector('.image-gallery');
+  if (!gallery) {
+    const space = activeStudioSection.querySelector('.images-space');
+    if (space) {
+      gallery = document.createElement('div');
+      gallery.className = 'image-gallery';
+      space.insertBefore(gallery, space.firstChild);
+    }
+  }
+
+  if (gallery) {
+    gallery.innerHTML = '';
+
+    studioImagesData.forEach((item, idx) => {
+      const overallIndex = idx + 1;
+      const titleText = item.title ? item.title : `Figure ${overallIndex}:`;
+
+      const imgContainer = document.createElement('div');
+      imgContainer.className = 'image-container';
+      if (studioImagesPerPage === 1) {
+        imgContainer.classList.add('print-one-per-page');
+        imgContainer.setAttribute('data-page-break', 'true');
+      }
+      imgContainer.setAttribute('data-rotation', item.rotation.toString());
+
+      const titleWrapper = document.createElement('div');
+      titleWrapper.className = 'img-title-wrapper';
+
+      const numSpan = document.createElement('span');
+      numSpan.className = 'img-number-label';
+      numSpan.textContent = `Figure ${overallIndex}: `;
+
+      const captionSpan = document.createElement('span');
+      captionSpan.className = 'img-caption';
+      captionSpan.contentEditable = 'true';
+      captionSpan.textContent = titleText.replace(/^Figure\s+\d+:\s*/i, '');
+
+      titleWrapper.appendChild(numSpan);
+      titleWrapper.appendChild(captionSpan);
+
+      const img = document.createElement('img');
+      img.src = item.src;
+      img.className = 'pasted-image';
+      img.style.transform = `rotate(${item.rotation}deg)`;
+
+      imgContainer.appendChild(titleWrapper);
+      imgContainer.appendChild(img);
+
+      // Append 4 Corner Handles
+      ['nw', 'ne', 'sw', 'se'].forEach(dir => {
+        const h = document.createElement('div');
+        h.className = `resize-handle resize-handle-${dir}`;
+        h.setAttribute('data-handle', dir);
+        imgContainer.appendChild(h);
+      });
+
+      // Append Floating Contextual Toolbar
+      const floatBar = document.createElement('div');
+      floatBar.className = 'image-floating-bar';
+      floatBar.innerHTML = `
+        <button class="img-bar-btn" onclick="setImageSize(this, '50%')">50%</button>
+        <button class="img-bar-btn" onclick="setImageSize(this, '75%')">75%</button>
+        <button class="img-bar-btn" onclick="setImageSize(this, '100%')">100%</button>
+        <div class="img-bar-divider"></div>
+        <button class="img-bar-btn" onclick="rotateImage(this)" title="Rotate image 90° clockwise">🔄 Rotate</button>
+        <button class="img-bar-btn toggle-page-break-btn" onclick="toggleImagePageBreak(this)" title="Print 1 image on dedicated A4 page">📄 1/Page</button>
+        <div class="img-bar-divider"></div>
+        <button class="img-bar-btn danger" onclick="deleteImageContainer(this)">🗑 Delete</button>
+      `;
+      imgContainer.appendChild(floatBar);
+
+      gallery.appendChild(imgContainer);
+      bindImageContainerEvents(imgContainer);
+    });
+
+    updateImageNumbers();
+  }
+
+  saveAllData();
+  closeImageStudio();
 }
 
 // LaTeX Status Diagnostic Badge Handler

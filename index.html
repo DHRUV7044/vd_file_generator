@@ -569,7 +569,43 @@ The threshold voltage is given by $V_{TH} = V_{T0} + \gamma(\sqrt{2\phi_f + V_{S
 
     </div>
 
-  </div> <!-- End App Layout -->
+  <!-- Image Studio & Slide Layout Editor Modal -->
+  <div id="image-studio-modal" class="image-studio-backdrop" style="display: none;">
+    <div class="image-studio-modal-dialog">
+      <div class="studio-header">
+        <div class="studio-title-group">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+          <h3>Image Studio & Slide Layout Builder</h3>
+        </div>
+        <div class="studio-header-controls">
+          <div class="studio-preset-bar">
+            <span class="preset-label">Images / Page:</span>
+            <button class="studio-preset-btn active" data-grid="1" onclick="setStudioImagesPerPage(1)">1 / Page</button>
+            <button class="studio-preset-btn" data-grid="2" onclick="setStudioImagesPerPage(2)">2 / Page</button>
+            <button class="studio-preset-btn" data-grid="3" onclick="setStudioImagesPerPage(3)">3 / Page</button>
+            <button class="studio-preset-btn" data-grid="4" onclick="setStudioImagesPerPage(4)">4 / Page</button>
+          </div>
+          <div class="studio-header-actions">
+            <button class="btn btn-secondary" onclick="triggerStudioFileUpload()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              + Upload Image(s)
+            </button>
+            <input type="file" id="studio-file-input" accept="image/*" multiple style="display: none;" onchange="handleStudioFileUpload(this)">
+            <button class="btn btn-primary" onclick="applyStudioToSection()">Done & Apply to Report</button>
+            <button class="studio-close-btn" onclick="closeImageStudio()">&times;</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="studio-body">
+        <div class="studio-canvas-scroll">
+          <div class="studio-a4-preview-page" id="studio-a4-canvas">
+            <!-- Studio Slides / Pages rendered dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- External Script -->
   <script src="app.js"></script>
