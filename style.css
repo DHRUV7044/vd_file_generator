@@ -1627,18 +1627,63 @@ body {
   gap: 30px;
 }
 
-.studio-a4-preview-page {
+.studio-canvas-scroll {
+  width: 100%;
+  max-width: 920px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 36px;
+}
+
+.studio-a4-page-card {
   width: 210mm;
-  min-height: 275mm;
+  min-height: 285mm;
   background: #ffffff;
   color: #0f172a;
   box-shadow: 0 15px 45px rgba(0,0,0,0.5);
-  padding: 15mm;
+  padding: 12mm 15mm;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   position: relative;
+  border-radius: 4px;
+}
+
+.studio-page-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e2e8f0;
+  margin-bottom: 8px;
+}
+
+.studio-page-badge {
+  font-size: 13px;
+  font-weight: 800;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.studio-page-layout-select {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  cursor: pointer;
+}
+
+.studio-page-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* 1, 2, 3, 4 Images/Page Grid Layout Systems */

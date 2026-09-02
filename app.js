@@ -1358,6 +1358,50 @@ function addStudioTextBox() {
   renderStudioCanvas();
 }
 
+// Multi-Page Studio State & Page Handlers
+let studioPagesList = [
+  { id: 'page-1', layout: 2 }
+];
+
+function addStudioPage() {
+  const newId = `page-${Date.now()}`;
+  studioPagesList.push({ id: newId, layout: 2 });
+  renderStudioCanvas();
+}
+
+function deleteStudioPage(pageId) {
+  if (studioPagesList.length <= 1) return;
+  const pageIdx = studioPagesList.findIndex(p => p.id === pageId);
+  if (pageIdx !== -1) {
+    const targetIdx = Math.max(0, pageIdx - 1);
+    studioImagesData.forEach(img => {
+      if (img.pageIndex === pageIdx) {
+        img.pageIndex = targetIdx;
+      } else if (img.pageIndex > pageIdx) {
+        img.pageIndex--;
+      }
+    });
+    studioPagesList.splice(pageIdx, 1);
+    renderStudioCanvas();
+  }
+}
+
+function changeStudioPageLayout(pageId, layoutVal) {
+  const page = studioPagesList.find(p => p.id === pageId);
+  if (page) {
+    page.layout = layoutVal;
+    renderStudioCanvas();
+  }
+}
+
+function moveStudioItemToPage(itemId, targetPageIndex) {
+  const item = studioImagesData.find(x => x.id === itemId);
+  if (item) {
+    item.pageIndex = parseInt(targetPageIndex, 10);
+    renderStudioCanvas();
+  }
+}
+
 function renderStudioCanvas() {
   const canvas = document.getElementById('studio-a4-canvas');
   if (!canvas) return;
@@ -1374,82 +1418,112 @@ function renderStudioCanvas() {
     return;
   }
 
-  if (studioImagesPerPage === 'freeform') {
-    const gridContainer = document.createElement('div');
-    gridContainer.className = 'studio-grid-container grid-layout-freeform';
+  // Ensure every image has a valid pageIndex
+  studioImagesData.forEach(img => {
+    if (img.pageIndex === undefined || img.pageIndex < 0) {
+      img.pageIndex = 0;
+    }
+  });
 
-    studioImagesData.forEach((item, idx) => {
-      const itemEl = document.createElement('div');
-      itemEl.className = 'studio-item freeform-item';
-      itemEl.setAttribute('data-id', item.id);
-
-      if (item.isText) {
-        itemEl.innerHTML = `
-          <div class="studio-item-actions">
-            <button class="studio-item-btn danger" onclick="deleteStudioItem('${item.id}')" title="Delete">🗑</button>
-          </div>
-          <div class="studio-item-title" contenteditable="true" style="font-size: 13px; font-weight: 600; width: 100%; border: none;" oninput="updateStudioItemText('${item.id}', this)">${item.text}</div>
-        `;
-      } else {
-        const rotDeg = item.rotation || 0;
-        const defaultTitle = item.title ? item.title : `Figure ${idx + 1}:`;
-        itemEl.innerHTML = `
-          <div class="studio-item-actions">
-            <button class="studio-item-btn" onclick="rotateStudioItem('${item.id}')" title="Rotate 90°">🔄</button>
-            <button class="studio-item-btn danger" onclick="deleteStudioItem('${item.id}')" title="Delete">🗑</button>
-          </div>
-          <div class="studio-item-title" contenteditable="true" oninput="updateStudioItemTitle('${item.id}', this)">${defaultTitle}</div>
-          <img src="${item.src}" style="transform: rotate(${rotDeg}deg);">
-        `;
-      }
-
-      gridContainer.appendChild(itemEl);
-    });
-
-    canvas.appendChild(gridContainer);
-    return;
+  // Calculate required pages if not existing
+  const maxAssignedPage = Math.max(...studioImagesData.map(img => img.pageIndex || 0));
+  while (studioPagesList.length <= maxAssignedPage) {
+    studioPagesList.push({ id: `page-${Date.now()}-${studioPagesList.length}`, layout: 2 });
   }
 
-  // Chunk images per page based on studioImagesPerPage (1, 2, 3, or 4)
-  const pageSize = parseInt(studioImagesPerPage, 10) || 2;
+  // Render Page Cards (Page 1, Page 2, Page 3...)
+  studioPagesList.forEach((page, pIdx) => {
+    const pageCard = document.createElement('div');
+    pageCard.className = 'studio-a4-page-card';
+    pageCard.setAttribute('data-page-index', pIdx);
 
-  for (let i = 0; i < studioImagesData.length; i += pageSize) {
-    const chunk = studioImagesData.slice(i, i + pageSize);
+    // Page Header Bar
+    const headerBar = document.createElement('div');
+    headerBar.className = 'studio-page-header-bar';
 
+    const pageBadge = document.createElement('div');
+    pageBadge.className = 'studio-page-badge';
+    pageBadge.innerHTML = `📄 Page ${pIdx + 1} (A4 Sheet)`;
+
+    const controlsGroup = document.createElement('div');
+    controlsGroup.className = 'studio-page-actions';
+
+    // Layout Dropdown for this page
+    const layoutSelect = document.createElement('select');
+    layoutSelect.className = 'studio-page-layout-select';
+    layoutSelect.setAttribute('onchange', `changeStudioPageLayout('${page.id}', this.value)`);
+    layoutSelect.innerHTML = `
+      <option value="1" ${page.layout == 1 ? 'selected' : ''}>1 Image / Page (Full Hero)</option>
+      <option value="2" ${page.layout == 2 ? 'selected' : ''}>2 Images / Page (Dual Split)</option>
+      <option value="3" ${page.layout == 3 ? 'selected' : ''}>3 Images / Page (1 Top + 2 Bottom)</option>
+      <option value="4" ${page.layout == 4 ? 'selected' : ''}>4 Images / Page (2x2 Quad)</option>
+      <option value="freeform" ${page.layout == 'freeform' ? 'selected' : ''}>Freeform Drag</option>
+    `;
+
+    controlsGroup.appendChild(layoutSelect);
+
+    if (studioPagesList.length > 1) {
+      const delPageBtn = document.createElement('button');
+      delPageBtn.className = 'studio-item-btn danger';
+      delPageBtn.title = 'Delete Page';
+      delPageBtn.innerHTML = '🗑 Delete Page';
+      delPageBtn.setAttribute('onclick', `deleteStudioPage('${page.id}')`);
+      controlsGroup.appendChild(delPageBtn);
+    }
+
+    headerBar.appendChild(pageBadge);
+    headerBar.appendChild(controlsGroup);
+    pageCard.appendChild(headerBar);
+
+    // Grid Container for Page Items
+    const pageItems = studioImagesData.filter(img => (img.pageIndex || 0) === pIdx);
+    const layoutClass = page.layout;
     const gridContainer = document.createElement('div');
-    gridContainer.className = `studio-grid-container grid-layout-${pageSize}`;
+    gridContainer.className = `studio-grid-container grid-layout-${layoutClass}`;
 
-    chunk.forEach((item, idx) => {
-      const overallIndex = i + idx + 1;
+    pageItems.forEach((item, idx) => {
+      const overallIndex = idx + 1;
       const itemEl = document.createElement('div');
       itemEl.className = 'studio-item';
       itemEl.setAttribute('data-id', item.id);
 
-      if (item.isText) {
-        itemEl.innerHTML = `
-          <div class="studio-item-actions">
-            <button class="studio-item-btn danger" onclick="deleteStudioItem('${item.id}')" title="Delete">🗑</button>
-          </div>
-          <div class="studio-item-title" contenteditable="true" style="font-size: 13px; font-weight: 600; width: 100%; border: none;" oninput="updateStudioItemText('${item.id}', this)">${item.text}</div>
-        `;
-      } else {
-        const rotDeg = item.rotation || 0;
-        const defaultTitle = item.title ? item.title : `Figure ${overallIndex}:`;
+      const rotDeg = item.rotation || 0;
+      const defaultTitle = item.title ? item.title : `Figure ${overallIndex}:`;
 
-        itemEl.innerHTML = `
-          <div class="studio-item-actions">
-            <button class="studio-item-btn" onclick="rotateStudioItem('${item.id}')" title="Rotate 90°">🔄</button>
-            <button class="studio-item-btn danger" onclick="deleteStudioItem('${item.id}')" title="Delete">🗑</button>
-          </div>
-          <div class="studio-item-title" contenteditable="true" oninput="updateStudioItemTitle('${item.id}', this)">${defaultTitle}</div>
-          <img src="${item.src}" style="transform: rotate(${rotDeg}deg);">
-        `;
-      }
+      // Page Assign Dropdown
+      let pageOptionsHTML = '';
+      studioPagesList.forEach((_, optIdx) => {
+        pageOptionsHTML += `<option value="${optIdx}" ${optIdx === pIdx ? 'selected' : ''}>Page ${optIdx + 1}</option>`;
+      });
+
+      itemEl.innerHTML = `
+        <div class="studio-item-actions">
+          <select class="studio-item-page-select" onchange="moveStudioItemToPage('${item.id}', this.value)" title="Move to Page">
+            ${pageOptionsHTML}
+          </select>
+          <button class="studio-item-btn" onclick="rotateStudioItem('${item.id}')" title="Rotate 90°">🔄</button>
+          <button class="studio-item-btn danger" onclick="deleteStudioItem('${item.id}')" title="Delete">🗑</button>
+        </div>
+        <div class="studio-item-title" contenteditable="true" oninput="updateStudioItemTitle('${item.id}', this)">${defaultTitle}</div>
+        <img src="${item.src}" style="transform: rotate(${rotDeg}deg);">
+      `;
+
       gridContainer.appendChild(itemEl);
     });
 
-    canvas.appendChild(gridContainer);
-  }
+    pageCard.appendChild(gridContainer);
+    canvas.appendChild(pageCard);
+  });
+
+  // Render "+ Add New Page" button at bottom
+  const addPageBtnContainer = document.createElement('div');
+  addPageBtnContainer.style.margin = '20px 0';
+  addPageBtnContainer.innerHTML = `
+    <button class="btn btn-secondary" onclick="addStudioPage()" style="padding: 10px 24px; font-weight: 700; border-radius: 8px;">
+      📄 + Add New Page (A4 Sheet)
+    </button>
+  `;
+  canvas.appendChild(addPageBtnContainer);
 }
 
 function updateStudioItemText(id, editable) {
