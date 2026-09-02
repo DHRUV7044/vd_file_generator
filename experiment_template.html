@@ -603,6 +603,40 @@ The threshold voltage is given by $V_{TH} = V_{T0} + \gamma(\sqrt{2\phi_f + V_{S
       </div>
 
       <div class="studio-body">
+        <!-- Contextual Action Bar for Selected Objects -->
+        <div class="studio-tools-subbar">
+          <div class="studio-tool-group">
+            <span class="studio-tool-label">Align:</span>
+            <button class="studio-tool-btn" onclick="alignStudioObjects('left')" title="Align Left">⬅ Left</button>
+            <button class="studio-tool-btn" onclick="alignStudioObjects('center')" title="Align Center">↔ Center</button>
+            <button class="studio-tool-btn" onclick="alignStudioObjects('right')" title="Align Right">➡ Right</button>
+            <button class="studio-tool-btn" onclick="alignStudioObjects('top')" title="Align Top">⬆ Top</button>
+            <button class="studio-tool-btn" onclick="alignStudioObjects('middle')" title="Align Middle">↕ Middle</button>
+            <button class="studio-tool-btn" onclick="alignStudioObjects('bottom')" title="Align Bottom">⬇ Bottom</button>
+          </div>
+          <div class="studio-tool-divider"></div>
+          <div class="studio-tool-group">
+            <span class="studio-tool-label">Distribute:</span>
+            <button class="studio-tool-btn" onclick="distributeStudioObjects('horizontal')" title="Distribute Horizontally">⇹ Horiz</button>
+            <button class="studio-tool-btn" onclick="distributeStudioObjects('vertical')" title="Distribute Vertically">⇕ Vert</button>
+          </div>
+          <div class="studio-tool-divider"></div>
+          <div class="studio-tool-group">
+            <span class="studio-tool-label">Layer:</span>
+            <button class="studio-tool-btn" onclick="changeStudioObjectLayer('front')" title="Bring to Front">🔝 Front</button>
+            <button class="studio-tool-btn" onclick="changeStudioObjectLayer('forward')" title="Bring Forward">🔼 Up</button>
+            <button class="studio-tool-btn" onclick="changeStudioObjectLayer('backward')" title="Send Backward">🔽 Down</button>
+            <button class="studio-tool-btn" onclick="changeStudioObjectLayer('back')" title="Send to Back">🔚 Back</button>
+          </div>
+          <div class="studio-tool-divider"></div>
+          <div class="studio-tool-group">
+            <span class="studio-tool-label">Edit:</span>
+            <button class="studio-tool-btn" onclick="duplicateStudioSelected()" title="Duplicate (Ctrl+D)">📋 Duplicate</button>
+            <button class="studio-tool-btn" onclick="copyStudioSelected()" title="Copy (Ctrl+C)">📄 Copy</button>
+            <button class="studio-tool-btn" onclick="pasteStudioClipboard()" title="Paste (Ctrl+V)">📥 Paste</button>
+            <button class="studio-tool-btn danger" onclick="deleteStudioSelected()" title="Delete (Del)">🗑 Delete</button>
+          </div>
+        </div>
         <div class="studio-canvas-scroll">
           <div class="studio-a4-preview-page" id="studio-a4-canvas">
             <!-- Studio Slides / Pages rendered dynamically -->

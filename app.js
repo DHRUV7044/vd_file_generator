@@ -1302,25 +1302,38 @@ function openImageStudio(btn) {
   activeStudioSection = section;
   studioImagesData = [];
 
-  // Extract images from section
+  // Extract images from section with geometry
   const containers = section.querySelectorAll('.image-container');
   containers.forEach(c => {
     const img = c.querySelector('.pasted-image');
     const captionSpan = c.querySelector('.img-caption');
     const rot = c.getAttribute('data-rotation') || '0';
+    const xVal = c.getAttribute('data-x');
+    const yVal = c.getAttribute('data-y');
+    const wVal = c.getAttribute('data-width');
+    const hVal = c.getAttribute('data-height');
+    const zVal = c.getAttribute('data-zindex');
+    const pVal = c.getAttribute('data-pageindex');
+
     if (img) {
       studioImagesData.push({
         id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
         src: img.src,
         title: captionSpan ? captionSpan.textContent.trim() : '',
-        rotation: parseInt(rot, 10)
+        rotation: parseInt(rot, 10),
+        x: xVal ? parseFloat(xVal) : 10,
+        y: yVal ? parseFloat(yVal) : 15,
+        width: wVal ? parseFloat(wVal) : 190,
+        height: hVal ? parseFloat(hVal) : 120,
+        zIndex: zVal ? parseInt(zVal, 10) : 1,
+        pageIndex: pVal ? parseInt(pVal, 10) : 0
       });
     }
   });
 
   // Extract stored grid preset if any
   const storedGrid = section.getAttribute('data-images-per-page');
-  studioImagesPerPage = storedGrid ? parseInt(storedGrid, 10) : (studioImagesData.length > 2 ? 4 : 2);
+  studioImagesPerPage = storedGrid ? (storedGrid === 'freeform' ? 'freeform' : parseInt(storedGrid, 10)) : (studioImagesData.length > 2 ? 4 : 2);
 
   const modal = document.getElementById('image-studio-modal');
   if (modal) {
@@ -1471,8 +1484,13 @@ function renderStudioCanvas() {
       controlsGroup.appendChild(delPageBtn);
     }
 
-    headerBar.appendChild(pageBadge);
-    headerBar.appendChild(controlsGroup);
+    // Click empty page card space to clear selection
+    pageCard.addEventListener('pointerdown', (e) => {
+      if (e.target === pageCard || e.target.classList.contains('studio-grid-container')) {
+        clearStudioSelection();
+      }
+    });
+
     pageCard.appendChild(headerBar);
 
     // Grid Container for Page Items
@@ -1487,6 +1505,17 @@ function renderStudioCanvas() {
       itemEl.className = 'studio-item';
       itemEl.setAttribute('data-id', item.id);
 
+      // Apply Page-Relative Coordinates & Geometry if set
+      if (layoutClass === 'freeform') {
+        itemEl.classList.add('freeform-item');
+        itemEl.style.position = 'absolute';
+        if (item.x !== undefined) itemEl.style.left = `${item.x}mm`;
+        if (item.y !== undefined) itemEl.style.top = `${item.y}mm`;
+        if (item.width !== undefined) itemEl.style.width = `${item.width}mm`;
+        if (item.height !== undefined) itemEl.style.height = `${item.height}mm`;
+        if (item.zIndex !== undefined) itemEl.style.zIndex = item.zIndex;
+      }
+
       const rotDeg = item.rotation || 0;
       const defaultTitle = item.title ? item.title : `Figure ${overallIndex}:`;
 
@@ -1496,17 +1525,32 @@ function renderStudioCanvas() {
         pageOptionsHTML += `<option value="${optIdx}" ${optIdx === pIdx ? 'selected' : ''}>Page ${optIdx + 1}</option>`;
       });
 
-      itemEl.innerHTML = `
-        <div class="studio-item-actions">
-          <select class="studio-item-page-select" onchange="moveStudioItemToPage('${item.id}', this.value)" title="Move to Page">
-            ${pageOptionsHTML}
-          </select>
-          <button class="studio-item-btn" onclick="rotateStudioItem('${item.id}')" title="Rotate 90°">🔄</button>
-          <button class="studio-item-btn danger" onclick="deleteStudioItem('${item.id}')" title="Delete">🗑</button>
-        </div>
-        <div class="studio-item-title" contenteditable="true" oninput="updateStudioItemTitle('${item.id}', this)">${defaultTitle}</div>
-        <img src="${item.src}" style="transform: rotate(${rotDeg}deg);">
-      `;
+      if (item.isText) {
+        itemEl.innerHTML = `
+          <div class="studio-item-actions">
+            <select class="studio-item-page-select" onchange="moveStudioItemToPage('${item.id}', this.value)" title="Move to Page">
+              ${pageOptionsHTML}
+            </select>
+            <button class="studio-item-btn danger" onclick="deleteStudioItem('${item.id}')" title="Delete">🗑</button>
+          </div>
+          <div class="studio-item-title" contenteditable="true" style="font-size: 13px; font-weight: 600; width: 100%; border: none;" oninput="updateStudioItemText('${item.id}', this)">${item.text}</div>
+        `;
+      } else {
+        itemEl.innerHTML = `
+          <div class="studio-item-actions">
+            <select class="studio-item-page-select" onchange="moveStudioItemToPage('${item.id}', this.value)" title="Move to Page">
+              ${pageOptionsHTML}
+            </select>
+            <button class="studio-item-btn" onclick="rotateStudioItem('${item.id}')" title="Rotate 90°">🔄</button>
+            <button class="studio-item-btn danger" onclick="deleteStudioItem('${item.id}')" title="Delete">🗑</button>
+          </div>
+          <div class="studio-item-title" contenteditable="true" oninput="updateStudioItemTitle('${item.id}', this)">${defaultTitle}</div>
+          <img src="${item.src}" style="transform: rotate(${rotDeg}deg);">
+        `;
+      }
+
+      // Attach Pointer Drag Event Listener
+      itemEl.addEventListener('pointerdown', (e) => startStudioPointerDrag(e, item.id));
 
       gridContainer.appendChild(itemEl);
     });
@@ -1514,6 +1558,8 @@ function renderStudioCanvas() {
     pageCard.appendChild(gridContainer);
     canvas.appendChild(pageCard);
   });
+
+  updateStudioSelectionUI();
 
   // Render "+ Add New Page" button at bottom
   const addPageBtnContainer = document.createElement('div');
@@ -1533,25 +1579,483 @@ function updateStudioItemText(id, editable) {
   }
 }
 
-function rotateStudioItem(id) {
-  const item = studioImagesData.find(x => x.id === id);
-  if (item) {
-    item.rotation = (item.rotation + 90) % 360;
-    renderStudioCanvas();
+// Object Selection & Clipboard State
+let selectedStudioItemIds = new Set();
+let studioClipboardItem = null;
+
+function selectStudioItem(id, isMultiSelect = false) {
+  if (!isMultiSelect) {
+    selectedStudioItemIds.clear();
   }
+  if (id) {
+    if (isMultiSelect && selectedStudioItemIds.has(id)) {
+      selectedStudioItemIds.delete(id);
+    } else {
+      selectedStudioItemIds.add(id);
+    }
+  }
+  updateStudioSelectionUI();
 }
 
-function deleteStudioItem(id) {
-  studioImagesData = studioImagesData.filter(x => x.id !== id);
+function clearStudioSelection() {
+  selectedStudioItemIds.clear();
+  updateStudioSelectionUI();
+}
+
+function updateStudioSelectionUI() {
+  document.querySelectorAll('.studio-item').forEach(el => {
+    const id = el.getAttribute('data-id');
+    if (selectedStudioItemIds.has(id)) {
+      el.classList.add('is-selected');
+      ensureStudioSelectionBox(el, id);
+    } else {
+      el.classList.remove('is-selected');
+      const box = el.querySelector('.studio-selection-box');
+      if (box) box.remove();
+    }
+  });
+}
+
+function ensureStudioSelectionBox(itemEl, id) {
+  if (itemEl.querySelector('.studio-selection-box')) return;
+
+  const box = document.createElement('div');
+  box.className = 'studio-selection-box';
+
+  // Append 8 Handles
+  ['nw', 'n', 'ne', 'w', 'e', 'sw', 's', 'se'].forEach(handleType => {
+    const h = document.createElement('div');
+    h.className = `studio-handle studio-handle-${handleType}`;
+    h.setAttribute('data-handle', handleType);
+    h.setAttribute('data-id', id);
+    h.addEventListener('pointerdown', (e) => startStudioResize(e, id, handleType));
+    box.appendChild(h);
+  });
+
+  // Rotation Knob
+  const rotLine = document.createElement('div');
+  rotLine.className = 'studio-rotate-line';
+  const rotKnob = document.createElement('div');
+  rotKnob.className = 'studio-rotate-knob';
+  rotKnob.setAttribute('title', 'Drag to rotate (Hold Shift to snap 15°)');
+  rotKnob.addEventListener('pointerdown', (e) => startStudioRotation(e, id));
+
+  box.appendChild(rotLine);
+  box.appendChild(rotKnob);
+  itemEl.appendChild(box);
+}
+
+// Pointer Drag Engine (Move selected items together with snapping)
+function startStudioPointerDrag(e, targetId) {
+  if (e.target.closest('.studio-handle') || e.target.closest('.studio-rotate-knob') || e.target.closest('.studio-item-actions') || e.target.closest('[contenteditable="true"]')) {
+    return;
+  }
+
+  e.preventDefault();
+  const isMulti = e.ctrlKey || e.metaKey || e.shiftKey;
+  selectStudioItem(targetId, isMulti);
+
+  if (selectedStudioItemIds.size === 0) return;
+
+  const startX = e.clientX;
+  const startY = e.clientY;
+
+  const initialGeometries = [];
+  selectedStudioItemIds.forEach(id => {
+    const item = studioImagesData.find(x => x.id === id);
+    if (item) {
+      initialGeometries.push({
+        id,
+        x: item.x || 10,
+        y: item.y || 15,
+        width: item.width || 190,
+        height: item.height || 120,
+        element: document.querySelector(`.studio-item[data-id="${id}"]`)
+      });
+    }
+  });
+
+  const pageCard = document.querySelector('.studio-a4-page-card');
+  const pageRect = pageCard ? pageCard.getBoundingClientRect() : { width: 793, height: 1122 };
+  const pxToMmRatio = 210 / pageRect.width;
+
+  function onPointerMove(moveEvent) {
+    const deltaXMm = (moveEvent.clientX - startX) * pxToMmRatio;
+    const deltaYMm = (moveEvent.clientY - startY) * pxToMmRatio;
+
+    initialGeometries.forEach(geo => {
+      const item = studioImagesData.find(x => x.id === geo.id);
+      if (!item) return;
+
+      let newX = geo.x + deltaXMm;
+      let newY = geo.y + deltaYMm;
+
+      const snapTolerance = 3;
+      const snapLinesContainer = getOrCreateSnapGuidesContainer(geo.element);
+
+      if (Math.abs(newX + (item.width || 190) / 2 - 105) < snapTolerance) {
+        newX = 105 - (item.width || 190) / 2;
+        showSnapGuide(snapLinesContainer, 'y', '105mm');
+      } else {
+        hideSnapGuide(snapLinesContainer, 'y');
+      }
+
+      if (Math.abs(newY + (item.height || 120) / 2 - 148.5) < snapTolerance) {
+        newY = 148.5 - (item.height || 120) / 2;
+        showSnapGuide(snapLinesContainer, 'x', '148.5mm');
+      } else {
+        hideSnapGuide(snapLinesContainer, 'x');
+      }
+
+      item.x = Math.max(0, Math.min(210 - (item.width || 190), newX));
+      item.y = Math.max(0, Math.min(297 - (item.height || 120), newY));
+
+      if (geo.element) {
+        geo.element.style.left = `${item.x}mm`;
+        geo.element.style.top = `${item.y}mm`;
+      }
+    });
+  }
+
+  function onPointerUp() {
+    window.removeEventListener('pointermove', onPointerMove);
+    window.removeEventListener('pointerup', onPointerUp);
+    clearSnapGuides();
+    saveAllData();
+  }
+
+  window.addEventListener('pointermove', onPointerMove);
+  window.addEventListener('pointerup', onPointerUp);
+}
+
+// 8-Point Handle Resizing Engine
+function startStudioResize(e, id, handleType) {
+  e.stopPropagation();
+  e.preventDefault();
+
+  const item = studioImagesData.find(x => x.id === id);
+  if (!item) return;
+
+  const startX = e.clientX;
+  const startY = e.clientY;
+  const startW = item.width || 190;
+  const startH = item.height || 120;
+  const startPosX = item.x || 10;
+  const startPosY = item.y || 15;
+  const aspectRatio = item.aspectRatio || (startW / startH);
+
+  const itemEl = document.querySelector(`.studio-item[data-id="${id}"]`);
+  const pageCard = itemEl ? itemEl.closest('.studio-a4-page-card') : null;
+  const pageRect = pageCard ? pageCard.getBoundingClientRect() : { width: 793 };
+  const pxToMmRatio = 210 / pageRect.width;
+
+  function onPointerMove(moveEvent) {
+    const deltaX = (moveEvent.clientX - startX) * pxToMmRatio;
+    const deltaY = (moveEvent.clientY - startY) * pxToMmRatio;
+
+    let newW = startW;
+    let newH = startH;
+    let newX = startPosX;
+    let newY = startPosY;
+
+    const isCorner = ['nw', 'ne', 'sw', 'se'].includes(handleType);
+    const lockAspect = isCorner && !(moveEvent.ctrlKey || moveEvent.metaKey);
+
+    if (handleType.includes('e')) newW = startW + deltaX;
+    if (handleType.includes('s')) newH = startH + deltaY;
+    if (handleType.includes('w')) {
+      newW = startW - deltaX;
+      newX = startPosX + deltaX;
+    }
+    if (handleType.includes('n')) {
+      newH = startH - deltaY;
+      newY = startPosY + deltaY;
+    }
+
+    if (lockAspect) {
+      newH = newW / aspectRatio;
+    }
+
+    if (newW >= 15 && newH >= 15) {
+      item.width = newW;
+      item.height = newH;
+      item.x = newX;
+      item.y = newY;
+
+      if (itemEl) {
+        itemEl.style.width = `${newW}mm`;
+        itemEl.style.height = `${newH}mm`;
+        itemEl.style.left = `${newX}mm`;
+        itemEl.style.top = `${newY}mm`;
+      }
+    }
+  }
+
+  function onPointerUp() {
+    window.removeEventListener('pointermove', onPointerMove);
+    window.removeEventListener('pointerup', onPointerUp);
+    saveAllData();
+  }
+
+  window.addEventListener('pointermove', onPointerMove);
+  window.addEventListener('pointerup', onPointerUp);
+}
+
+// Free Rotation Engine
+function startStudioRotation(e, id) {
+  e.stopPropagation();
+  e.preventDefault();
+
+  const item = studioImagesData.find(x => x.id === id);
+  if (!item) return;
+
+  const itemEl = document.querySelector(`.studio-item[data-id="${id}"]`);
+  if (!itemEl) return;
+
+  const rect = itemEl.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+
+  function onPointerMove(moveEvent) {
+    const dx = moveEvent.clientX - centerX;
+    const dy = moveEvent.clientY - centerY;
+
+    let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+    if (angle < 0) angle += 360;
+
+    if (moveEvent.shiftKey) {
+      angle = Math.round(angle / 15) * 15;
+    } else {
+      angle = Math.round(angle);
+    }
+
+    item.rotation = angle % 360;
+    const img = itemEl.querySelector('img');
+    if (img) {
+      img.style.transform = `rotate(${item.rotation}deg)`;
+    }
+  }
+
+  function onPointerUp() {
+    window.removeEventListener('pointermove', onPointerMove);
+    window.removeEventListener('pointerup', onPointerUp);
+    saveAllData();
+  }
+
+  window.addEventListener('pointermove', onPointerMove);
+  window.addEventListener('pointerup', onPointerUp);
+}
+
+// Alignment Operations (Left, Center, Right, Top, Middle, Bottom)
+function alignStudioObjects(mode) {
+  if (selectedStudioItemIds.size === 0) return;
+  saveHistoryState();
+
+  const selectedItems = studioImagesData.filter(x => selectedStudioItemIds.has(x.id));
+  if (!selectedItems.length) return;
+
+  if (mode === 'left') {
+    const minX = Math.min(...selectedItems.map(i => i.x || 10));
+    selectedItems.forEach(i => i.x = minX);
+  } else if (mode === 'center') {
+    const avgCenterX = selectedItems.reduce((acc, i) => acc + (i.x || 10) + (i.width || 190) / 2, 0) / selectedItems.length;
+    selectedItems.forEach(i => i.x = avgCenterX - (i.width || 190) / 2);
+  } else if (mode === 'right') {
+    const maxRight = Math.max(...selectedItems.map(i => (i.x || 10) + (i.width || 190)));
+    selectedItems.forEach(i => i.x = maxRight - (i.width || 190));
+  } else if (mode === 'top') {
+    const minY = Math.min(...selectedItems.map(i => i.y || 15));
+    selectedItems.forEach(i => i.y = minY);
+  } else if (mode === 'middle') {
+    const avgCenterY = selectedItems.reduce((acc, i) => acc + (i.y || 15) + (i.height || 120) / 2, 0) / selectedItems.length;
+    selectedItems.forEach(i => i.y = avgCenterY - (i.height || 120) / 2);
+  } else if (mode === 'bottom') {
+    const maxBottom = Math.max(...selectedItems.map(i => (i.y || 15) + (i.height || 120)));
+    selectedItems.forEach(i => i.y = maxBottom - (i.height || 120));
+  }
+
   renderStudioCanvas();
+  saveAllData();
 }
 
-function updateStudioItemTitle(id, editable) {
-  const item = studioImagesData.find(x => x.id === id);
+// Distribution Operations (Horizontal / Vertical)
+function distributeStudioObjects(direction) {
+  const selectedItems = studioImagesData.filter(x => selectedStudioItemIds.has(x.id));
+  if (selectedItems.length < 3) return;
+
+  saveHistoryState();
+
+  if (direction === 'horizontal') {
+    selectedItems.sort((a, b) => (a.x || 0) - (b.x || 0));
+    const minX = selectedItems[0].x || 0;
+    const maxX = selectedItems[selectedItems.length - 1].x || 0;
+    const step = (maxX - minX) / (selectedItems.length - 1);
+    selectedItems.forEach((item, idx) => {
+      item.x = minX + idx * step;
+    });
+  } else if (direction === 'vertical') {
+    selectedItems.sort((a, b) => (a.y || 0) - (b.y || 0));
+    const minY = selectedItems[0].y || 0;
+    const maxY = selectedItems[selectedItems.length - 1].y || 0;
+    const step = (maxY - minY) / (selectedItems.length - 1);
+    selectedItems.forEach((item, idx) => {
+      item.y = minY + idx * step;
+    });
+  }
+
+  renderStudioCanvas();
+  saveAllData();
+}
+
+// Layer Stacking Order (Front, Forward, Backward, Back)
+function changeStudioObjectLayer(action) {
+  if (selectedStudioItemIds.size === 0) return;
+  saveHistoryState();
+
+  selectedStudioItemIds.forEach(id => {
+    const item = studioImagesData.find(x => x.id === id);
+    if (!item) return;
+
+    let currentZ = item.zIndex || 1;
+    if (action === 'front') item.zIndex = 999;
+    else if (action === 'forward') item.zIndex = currentZ + 1;
+    else if (action === 'backward') item.zIndex = Math.max(1, currentZ - 1);
+    else if (action === 'back') item.zIndex = 1;
+  });
+
+  renderStudioCanvas();
+  saveAllData();
+}
+
+// Duplicate, Copy, Paste & Delete Selected Objects
+function duplicateStudioSelected() {
+  if (selectedStudioItemIds.size === 0) return;
+  saveHistoryState();
+
+  const newSelection = new Set();
+  selectedStudioItemIds.forEach(id => {
+    const item = studioImagesData.find(x => x.id === id);
+    if (item) {
+      const dup = {
+        ...JSON.parse(JSON.stringify(item)),
+        id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        x: (item.x || 10) + 5,
+        y: (item.y || 15) + 5
+      };
+      studioImagesData.push(dup);
+      newSelection.add(dup.id);
+    }
+  });
+
+  selectedStudioItemIds = newSelection;
+  renderStudioCanvas();
+  saveAllData();
+}
+
+function copyStudioSelected() {
+  if (selectedStudioItemIds.size === 0) return;
+  const firstId = Array.from(selectedStudioItemIds)[0];
+  const item = studioImagesData.find(x => x.id === firstId);
   if (item) {
-    item.title = editable.textContent.trim();
+    studioClipboardItem = JSON.parse(JSON.stringify(item));
   }
 }
+
+function pasteStudioClipboard() {
+  if (!studioClipboardItem) return;
+  saveHistoryState();
+
+  const pasted = {
+    ...JSON.parse(JSON.stringify(studioClipboardItem)),
+    id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+    x: (studioClipboardItem.x || 10) + 8,
+    y: (studioClipboardItem.y || 15) + 8
+  };
+
+  studioImagesData.push(pasted);
+  selectedStudioItemIds = new Set([pasted.id]);
+  renderStudioCanvas();
+  saveAllData();
+}
+
+function deleteStudioSelected() {
+  if (selectedStudioItemIds.size === 0) return;
+  saveHistoryState();
+
+  studioImagesData = studioImagesData.filter(x => !selectedStudioItemIds.has(x.id));
+  selectedStudioItemIds.clear();
+  renderStudioCanvas();
+  saveAllData();
+}
+
+// Snapping Helpers
+function getOrCreateSnapGuidesContainer(itemEl) {
+  if (!itemEl) return null;
+  const pageCard = itemEl.closest('.studio-a4-page-card');
+  return pageCard;
+}
+
+function showSnapGuide(container, axis, pos) {
+  if (!container) return;
+  let guide = container.querySelector(`.studio-snap-guide-${axis}`);
+  if (!guide) {
+    guide = document.createElement('div');
+    guide.className = `studio-snap-guide studio-snap-guide-${axis}`;
+    container.appendChild(guide);
+  }
+  if (axis === 'x') guide.style.top = pos;
+  if (axis === 'y') guide.style.left = pos;
+  guide.style.display = 'block';
+}
+
+function hideSnapGuide(container, axis) {
+  if (!container) return;
+  const guide = container.querySelector(`.studio-snap-guide-${axis}`);
+  if (guide) guide.style.display = 'none';
+}
+
+function clearSnapGuides() {
+  document.querySelectorAll('.studio-snap-guide').forEach(g => g.style.display = 'none');
+}
+
+// Keyboard Shortcuts Listener for Image Studio
+window.addEventListener('keydown', function(e) {
+  const modal = document.getElementById('image-studio-modal');
+  if (!modal || modal.style.display === 'none') return;
+
+  if (e.target.tagName === 'INPUT' || e.target.isContentEditable) return;
+
+  if (e.key === 'Delete' || e.key === 'Backspace') {
+    e.preventDefault();
+    deleteStudioSelected();
+  } else if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+    e.preventDefault();
+    copyStudioSelected();
+  } else if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+    e.preventDefault();
+    pasteStudioClipboard();
+  } else if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+    e.preventDefault();
+    duplicateStudioSelected();
+  } else if (e.key === 'Escape') {
+    clearStudioSelection();
+  } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+    if (selectedStudioItemIds.size > 0) {
+      e.preventDefault();
+      const step = e.shiftKey ? 5 : 1;
+      selectedStudioItemIds.forEach(id => {
+        const item = studioImagesData.find(x => x.id === id);
+        if (item) {
+          if (e.key === 'ArrowLeft') item.x = Math.max(0, (item.x || 10) - step);
+          if (e.key === 'ArrowRight') item.x = Math.min(210, (item.x || 10) + step);
+          if (e.key === 'ArrowUp') item.y = Math.max(0, (item.y || 15) - step);
+          if (e.key === 'ArrowDown') item.y = Math.min(297, (item.y || 15) + step);
+        }
+      });
+      renderStudioCanvas();
+    }
+  }
+});
 
 function triggerStudioFileUpload() {
   const input = document.getElementById('studio-file-input');
@@ -1611,7 +2115,13 @@ function applyStudioToSection() {
         imgContainer.classList.add('print-one-per-page');
         imgContainer.setAttribute('data-page-break', 'true');
       }
-      imgContainer.setAttribute('data-rotation', item.rotation.toString());
+      imgContainer.setAttribute('data-rotation', (item.rotation || 0).toString());
+      if (item.x !== undefined) imgContainer.setAttribute('data-x', item.x.toString());
+      if (item.y !== undefined) imgContainer.setAttribute('data-y', item.y.toString());
+      if (item.width !== undefined) imgContainer.setAttribute('data-width', item.width.toString());
+      if (item.height !== undefined) imgContainer.setAttribute('data-height', item.height.toString());
+      if (item.zIndex !== undefined) imgContainer.setAttribute('data-zindex', item.zIndex.toString());
+      if (item.pageIndex !== undefined) imgContainer.setAttribute('data-pageindex', item.pageIndex.toString());
 
       const titleWrapper = document.createElement('div');
       titleWrapper.className = 'img-title-wrapper';
