@@ -1847,13 +1847,17 @@ function startStudioResize(e, id, handleType) {
   window.addEventListener('pointerup', onPointerUp);
 }
 
-// Free Rotation Engine
+// Free Rotation Engine (Zero-Jump Math with Center Offset & Multi-Selection Support)
 function startStudioRotation(e, id) {
   e.stopPropagation();
   e.preventDefault();
 
-  const item = studioImagesData.find(x => x.id === id);
-  if (!item) return;
+  const isMulti = e.ctrlKey || e.metaKey || e.shiftKey;
+  if (!selectedStudioItemIds.has(id)) {
+    selectStudioItem(id, isMulti);
+  }
+
+  saveHistoryState();
 
   const itemEl = document.querySelector(`.studio-item[data-id="${id}"]`);
   if (!itemEl) return;
@@ -1862,24 +1866,43 @@ function startStudioRotation(e, id) {
   const centerX = rect.left + rect.width / 2;
   const centerY = rect.top + rect.height / 2;
 
-  function onPointerMove(moveEvent) {
-    const dx = moveEvent.clientX - centerX;
-    const dy = moveEvent.clientY - centerY;
+  // Record initial pointer angle and initial image rotation
+  const initialPointerAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+  
+  const targetIds = selectedStudioItemIds.has(id) ? Array.from(selectedStudioItemIds) : [id];
+  const initialRotations = new Map();
+  targetIds.forEach(targetId => {
+    const item = studioImagesData.find(x => x.id === targetId);
+    if (item) {
+      initialRotations.set(targetId, item.rotation || 0);
+    }
+  });
 
-    let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
-    if (angle < 0) angle += 360;
+  function onPointerMove(moveEvent) {
+    const currentPointerAngle = Math.atan2(moveEvent.clientY - centerY, moveEvent.clientX - centerX) * (180 / Math.PI);
+    let deltaAngle = currentPointerAngle - initialPointerAngle;
 
     if (moveEvent.shiftKey) {
-      angle = Math.round(angle / 15) * 15;
+      deltaAngle = Math.round(deltaAngle / 15) * 15;
     } else {
-      angle = Math.round(angle);
+      deltaAngle = Math.round(deltaAngle);
     }
 
-    item.rotation = angle % 360;
-    const img = itemEl.querySelector('img');
-    if (img) {
-      img.style.transform = `rotate(${item.rotation}deg)`;
-    }
+    targetIds.forEach(targetId => {
+      const item = studioImagesData.find(x => x.id === targetId);
+      const initialRot = initialRotations.get(targetId) || 0;
+      if (item) {
+        let newRot = Math.round(initialRot + deltaAngle) % 360;
+        if (newRot < 0) newRot += 360;
+        item.rotation = newRot;
+
+        const targetEl = document.querySelector(`.studio-item[data-id="${targetId}"]`);
+        if (targetEl) {
+          const img = targetEl.querySelector('img');
+          if (img) img.style.transform = `rotate(${item.rotation}deg)`;
+        }
+      }
+    });
   }
 
   function onPointerUp() {
@@ -1890,6 +1913,59 @@ function startStudioRotation(e, id) {
 
   window.addEventListener('pointermove', onPointerMove);
   window.addEventListener('pointerup', onPointerUp);
+}
+
+function rotateStudioItem(id) {
+  saveHistoryState();
+  const targetIds = selectedStudioItemIds.has(id) ? Array.from(selectedStudioItemIds) : [id];
+  targetIds.forEach(targetId => {
+    const item = studioImagesData.find(x => x.id === targetId);
+    if (item) {
+      item.rotation = ((item.rotation || 0) + 90) % 360;
+    }
+  });
+  renderStudioCanvas();
+  saveAllData();
+}
+
+function rotateStudioSelected() {
+  if (selectedStudioItemIds.size === 0) return;
+  saveHistoryState();
+
+  selectedStudioItemIds.forEach(id => {
+    const item = studioImagesData.find(x => x.id === id);
+    if (item) {
+      item.rotation = ((item.rotation || 0) + 90) % 360;
+      const targetEl = document.querySelector(`.studio-item[data-id="${id}"]`);
+      if (targetEl) {
+        const img = targetEl.querySelector('img');
+        if (img) img.style.transform = `rotate(${item.rotation}deg)`;
+      }
+    }
+  });
+
+  renderStudioCanvas();
+  saveAllData();
+}
+
+function resetStudioRotation() {
+  if (selectedStudioItemIds.size === 0) return;
+  saveHistoryState();
+
+  selectedStudioItemIds.forEach(id => {
+    const item = studioImagesData.find(x => x.id === id);
+    if (item) {
+      item.rotation = 0;
+      const targetEl = document.querySelector(`.studio-item[data-id="${id}"]`);
+      if (targetEl) {
+        const img = targetEl.querySelector('img');
+        if (img) img.style.transform = `rotate(0deg)`;
+      }
+    }
+  });
+
+  renderStudioCanvas();
+  saveAllData();
 }
 
 // Alignment Operations (Left, Center, Right, Top, Middle, Bottom)

@@ -1756,6 +1756,8 @@ body {
   max-height: 82%;
   object-fit: contain;
   border-radius: 4px;
+  transform-origin: center center !important;
+  transition: transform 0.05s ease-out;
 }
 
 .studio-item-title {
@@ -1768,6 +1770,9 @@ body {
   border-bottom: 1px dashed #cbd5e1;
   outline: none;
   padding: 2px 4px;
+  transform: none !important;
+  position: relative;
+  z-index: 10;
 }
 
 .studio-item-actions {
